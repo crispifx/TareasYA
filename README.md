@@ -49,7 +49,7 @@ npm test           # tests unitarios de la lógica de tareas
 
 ## Documentación
 
-Las entregas de cada TP están en `docs/entregas/`.
+Las entregas de cada TP están en `docs/entregas/`. El historial del proyecto está en [`docs/BITACORA.md`](docs/BITACORA.md).
 
 ## Pendiente
 
