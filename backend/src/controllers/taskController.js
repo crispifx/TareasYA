@@ -6,7 +6,7 @@ const service = require("../services/taskService");
 function responder(res, r) {
   if (!r.ok) return res.status(r.status).json({ error: r.error });
   if (r.status === 204) return res.status(204).end();
-  return res.status(r.status).json(r.tarea);
+  return res.status(r.status).json(r.datos);
 }
 
 const postTarea = (req, res) => responder(res, service.crearNuevaTarea(req.body));

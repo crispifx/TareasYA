@@ -9,6 +9,7 @@ const {
   filtrarYOrdenar,
   resumenTareas,
   tareasPorVencer,
+  validarHoras,
 } = require("../logic/taskLogic");
 const repo = require("../repositories/taskRepository");
 
@@ -24,7 +25,7 @@ function crearNuevaTarea(datos) {
 
   const tarea = crearTarea(datos);
   repo.agregar(tarea);
-  return { ok: true, status: 201, tarea };
+  return { ok: true, status: 201, datos: tarea };
 }
 
 function listarTareas(consulta) {
@@ -33,7 +34,7 @@ function listarTareas(consulta) {
 
 function obtenerTarea(id) {
   const tarea = repo.buscarPorId(id);
-  return tarea ? { ok: true, status: 200, tarea } : NO_ENCONTRADA;
+  return tarea ? { ok: true, status: 200, datos: tarea } : NO_ENCONTRADA;
 }
 
 function actualizarTarea(id, cambios) {
@@ -53,7 +54,7 @@ function actualizarTarea(id, cambios) {
     return { ok: false, status: 409, error: MSG_DUPLICADA };
 
   repo.reemplazar(id, nueva);
-  return { ok: true, status: 200, tarea: nueva };
+  return { ok: true, status: 200, datos: nueva };
 }
 
 function eliminarTarea(id) {
@@ -61,14 +62,13 @@ function eliminarTarea(id) {
 }
 
 function obtenerResumen() {
-  return { ok: true, status: 200, tarea: resumenTareas(repo.obtenerTodas()) };
+  return { ok: true, status: 200, datos: resumenTareas(repo.obtenerTodas()) };
 }
 
 function listarProximas(horasCrudo) {
-  const horas = horasCrudo === undefined ? 48 : Number(horasCrudo);
-  if (!Number.isInteger(horas) || horas < 1 || horas > 720)
-    return { ok: false, status: 400, error: "El parámetro horas debe ser un entero entre 1 y 720" };
-  return { ok: true, status: 200, tarea: tareasPorVencer(repo.obtenerTodas(), horas) };
+  const { valido, horas, error } = validarHoras(horasCrudo);
+  if (!valido) return { ok: false, status: 400, error };
+  return { ok: true, status: 200, datos: tareasPorVencer(repo.obtenerTodas(), horas) };
 }
 
 module.exports = {

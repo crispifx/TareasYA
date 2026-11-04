@@ -13,6 +13,9 @@ const CAMPOS_EDITABLES = [
   "favorito",
 ];
 const MAX_TITULO = 100;
+const HORA_MS = 60 * 60 * 1000;
+const HORAS_POR_DEFECTO = 48;
+const HORAS_MAXIMAS = 720; // 30 días
 const MAX_DESCRIPCION = 500;
 
 const esTexto = (v) => typeof v === "string";
@@ -114,14 +117,18 @@ function aplicarCambios(tarea, cambios) {
 }
 
 // Tareas activas que vencen dentro de las próximas `horas`, la más próxima primero.
-function tareasPorVencer(tareas, horas = 48, ahora = new Date()) {
-  const limite = new Date(ahora.getTime() + horas * 3600 * 1000);
+function tareasPorVencer(tareas, horas = HORAS_POR_DEFECTO, ahora = new Date()) {
   return tareas
-    .filter((t) => {
-      const f = new Date(t.fechaLimite);
-      return esActiva(t) && f >= ahora && f <= limite;
-    })
+    .filter((t) => venceEnVentana(t, horas, ahora))
     .sort((a, b) => new Date(a.fechaLimite) - new Date(b.fechaLimite));
+}
+
+// Valida el parámetro ?horas. Sin valor se usa el predeterminado.
+function validarHoras(valor) {
+  const horas = valor === undefined ? HORAS_POR_DEFECTO : Number(valor);
+  if (!Number.isInteger(horas) || horas < 1 || horas > HORAS_MAXIMAS)
+    return { valido: false, error: `El parámetro horas debe ser un entero entre 1 y ${HORAS_MAXIMAS}` };
+  return { valido: true, horas };
 }
 
 const PESO_PRIORIDAD = { alta: 0, media: 1, baja: 2 };
@@ -151,6 +158,11 @@ function filtrarYOrdenar(tareas, consulta = {}) {
 // ---------- Estado y vencimientos ----------
 const esActiva = (tarea) => tarea.estado !== "completada";
 const estaVencida = (tarea, ahora) => esActiva(tarea) && new Date(tarea.fechaLimite) < ahora;
+// ¿Vence entre ahora y ahora + horas? (límite inclusivo)
+const venceEnVentana = (tarea, horas, ahora) => {
+  const fecha = new Date(tarea.fechaLimite);
+  return esActiva(tarea) && fecha >= ahora && fecha <= new Date(ahora.getTime() + horas * HORA_MS);
+};
 const contar = (tareas, condicion) => tareas.filter(condicion).length;
 const conEstado = (estado) => (tarea) => tarea.estado === estado;
 
@@ -162,16 +174,14 @@ function resumenTareas(tareas, ahora = new Date()) {
     enCurso: contar(tareas, conEstado("en curso")),
     completadas: contar(tareas, conEstado("completada")),
     vencidas: contar(tareas, (t) => estaVencida(t, ahora)),
-    porVencer: contar(tareas, (t) => {
-      const f = new Date(t.fechaLimite);
-      return esActiva(t) && f >= ahora && f <= new Date(ahora.getTime() + 48 * 3600 * 1000);
-    }),
+    porVencer: tareasPorVencer(tareas, HORAS_POR_DEFECTO, ahora).length,
   };
 }
 
 module.exports = {
   resumenTareas,
   tareasPorVencer,
+  validarHoras,
   PRIORIDADES_VALIDAS,
   ESTADOS_VALIDOS,
   validarDatosTarea,
