@@ -113,6 +113,17 @@ function aplicarCambios(tarea, cambios) {
   return nueva;
 }
 
+// Tareas activas que vencen dentro de las próximas `horas`, la más próxima primero.
+function tareasPorVencer(tareas, horas = 48, ahora = new Date()) {
+  const limite = new Date(ahora.getTime() + horas * 3600 * 1000);
+  return tareas
+    .filter((t) => {
+      const f = new Date(t.fechaLimite);
+      return esActiva(t) && f >= ahora && f <= limite;
+    })
+    .sort((a, b) => new Date(a.fechaLimite) - new Date(b.fechaLimite));
+}
+
 const PESO_PRIORIDAD = { alta: 0, media: 1, baja: 2 };
 
 // Filtros: q (título/materia), materia, estado, prioridad, favorito.
@@ -151,11 +162,16 @@ function resumenTareas(tareas, ahora = new Date()) {
     enCurso: contar(tareas, conEstado("en curso")),
     completadas: contar(tareas, conEstado("completada")),
     vencidas: contar(tareas, (t) => estaVencida(t, ahora)),
+    porVencer: contar(tareas, (t) => {
+      const f = new Date(t.fechaLimite);
+      return esActiva(t) && f >= ahora && f <= new Date(ahora.getTime() + 48 * 3600 * 1000);
+    }),
   };
 }
 
 module.exports = {
   resumenTareas,
+  tareasPorVencer,
   PRIORIDADES_VALIDAS,
   ESTADOS_VALIDOS,
   validarDatosTarea,

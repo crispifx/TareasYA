@@ -8,6 +8,7 @@ const {
   aplicarCambios,
   filtrarYOrdenar,
   resumenTareas,
+  tareasPorVencer,
 } = require("../logic/taskLogic");
 const repo = require("../repositories/taskRepository");
 
@@ -63,7 +64,15 @@ function obtenerResumen() {
   return { ok: true, status: 200, tarea: resumenTareas(repo.obtenerTodas()) };
 }
 
+function listarProximas(horasCrudo) {
+  const horas = horasCrudo === undefined ? 48 : Number(horasCrudo);
+  if (!Number.isInteger(horas) || horas < 1 || horas > 720)
+    return { ok: false, status: 400, error: "El parámetro horas debe ser un entero entre 1 y 720" };
+  return { ok: true, status: 200, tarea: tareasPorVencer(repo.obtenerTodas(), horas) };
+}
+
 module.exports = {
+  listarProximas,
   obtenerResumen,
   crearNuevaTarea,
   listarTareas,

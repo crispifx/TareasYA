@@ -18,4 +18,6 @@ const deleteTarea = (req, res) => responder(res, service.eliminarTarea(req.param
 
 const getResumen = (req, res) => responder(res, service.obtenerResumen());
 
-module.exports = { getResumen, postTarea, getTareas, getTarea, patchTarea, deleteTarea };
+const getProximas = (req, res) => responder(res, service.listarProximas(req.query.horas));
+
+module.exports = { getProximas, getResumen, postTarea, getTareas, getTarea, patchTarea, deleteTarea };
