@@ -137,7 +137,21 @@ function filtrarYOrdenar(tareas, consulta = {}) {
   return resultado;
 }
 
+// Contadores por estado y tareas vencidas.
+function resumenTareas(tareas, ahora = new Date()) {
+  return {
+    total: tareas.length,
+    pendientes: tareas.filter((t) => t.estado === "pendiente").length,
+    enCurso: tareas.filter((t) => t.estado === "en curso").length,
+    completadas: tareas.filter((t) => t.estado === "completada").length,
+    vencidas: tareas.filter(
+      (t) => t.estado !== "completada" && new Date(t.fechaLimite) < ahora
+    ).length,
+  };
+}
+
 module.exports = {
+  resumenTareas,
   PRIORIDADES_VALIDAS,
   ESTADOS_VALIDOS,
   validarDatosTarea,

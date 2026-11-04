@@ -16,4 +16,6 @@ const patchTarea = (req, res) =>
   responder(res, service.actualizarTarea(req.params.id, req.body));
 const deleteTarea = (req, res) => responder(res, service.eliminarTarea(req.params.id));
 
-module.exports = { postTarea, getTareas, getTarea, patchTarea, deleteTarea };
+const getResumen = (req, res) => responder(res, service.obtenerResumen());
+
+module.exports = { getResumen, postTarea, getTareas, getTarea, patchTarea, deleteTarea };

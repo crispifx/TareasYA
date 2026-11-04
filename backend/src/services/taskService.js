@@ -7,6 +7,7 @@ const {
   crearTarea,
   aplicarCambios,
   filtrarYOrdenar,
+  resumenTareas,
 } = require("../logic/taskLogic");
 const repo = require("../repositories/taskRepository");
 
@@ -58,7 +59,12 @@ function eliminarTarea(id) {
   return repo.eliminar(id) ? { ok: true, status: 204 } : NO_ENCONTRADA;
 }
 
+function obtenerResumen() {
+  return { ok: true, status: 200, tarea: resumenTareas(repo.obtenerTodas()) };
+}
+
 module.exports = {
+  obtenerResumen,
   crearNuevaTarea,
   listarTareas,
   obtenerTarea,
