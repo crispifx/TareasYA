@@ -6,6 +6,19 @@ Etiquetas: **[Nuevo]** funcionalidad - **[Mejora]** cambio sobre algo existente 
 
 ---
 
+## v0.11.0 - 3 de noviembre de 2026 - Ciclo Rojo-Verde-Refactor, endpoints y agentes
+- **[Suceso]** Se adopta el ciclo Rojo-Verde-Refactor como forma de trabajo: dos ciclos completos, con un commit por fase y las salidas reales de los tests guardadas en docs/TDD-ROJO-VERDE-REFACTOR.md.
+- **[Nuevo]** Ciclo 1: GET /api/tareas/resumen (total, pendientes, en curso, completadas y vencidas). Rojo: 4 tests fallando por TypeError y 404. Verde: 18 de 18. Refactor: helpers esActiva, estaVencida y contar.
+- **[Nuevo]** Ciclo 2: GET /api/tareas/proximas?horas=N (activas que vencen pronto, por defecto 48 h, entre 1 y 720, límite inclusivo, ordenadas por fecha). Rojo: 17 tests fallando. Verde: 31 de 31.
+- **[Mejora]** El resumen incorpora porVencer. El cambio de requisito se escribió primero como test (se actualizaron las expectativas del ciclo 1).
+- **[Mejora]** Refactor del ciclo 2: venceEnVentana (sin condición duplicada), constantes en lugar de números mágicos, validarHoras en la capa de lógica y resultados del service renombrados a datos.
+- **[Fix]** Detectado por el rojo: una ruta fija como /tareas/resumen se interpretaría como un id si se registra después de /tareas/:id. Las rutas fijas van primero.
+- **[Nuevo]** Agentes de IA en .claude/agents/: revisor (el del TP 6, solo lectura) y tdd (guía el ciclo Rojo-Verde-Refactor y hace un commit por fase).
+- **[Nuevo]** CLAUDE.md con comandos, arquitectura, flujo obligatorio y reglas del proyecto, y docs/FLUJO-DE-TRABAJO.md con el diagrama del flujo.
+- **[Nuevo]** Revisión del diff con las cinco preguntas del revisor, aplicadas a mano (no se ejecutó el subagente): tres hallazgos de gravedad media, todos límites ya conocidos de la persistencia en archivo y de la falta de autenticación.
+- **[Nuevo]** Documentación de la API: docs/API.md, backend/openapi.yaml (OpenAPI 3.0) y backend/requests.http para probar desde VS Code.
+- **[Nuevo]** Tests del backend: de 14 a 31, todos correctos. Total del proyecto: 53 (31 backend y 22 frontend). Comprobación manual de los endpoints contra el servidor levantado.
+
 ## v0.10.1 - 3 de noviembre de 2026 - Documentación
 - **[Nuevo]** SPEC y plan técnico del sistema en PDF (docs/SPEC-TareasYA.pdf).
 - **[Nuevo]** Esta bitácora en PDF y Markdown.
@@ -28,7 +41,7 @@ Etiquetas: **[Nuevo]** funcionalidad - **[Mejora]** cambio sobre algo existente 
 - **[Mejora]** app.js separado de server.js: la app se puede testear sin abrir un puerto (resuelve la deuda sobre listen al importar).
 - **[Fix]** Mensajes distintos para fecha vacía (obligatoria) y fecha inválida (resuelve la deuda del TP 4).
 - **[Fix]** Un título que no es texto ya no rompe la comparación de duplicados: se válida el tipo antes.
-- **[Mejora]** Limites de largo (título 100, descripción 500) y tamaño maximo del cuerpo (100 kb).
+- **[Mejora]** Límites de largo (título 100, descripción 500) y tamaño máximo del cuerpo (100 kb).
 - **[Mejora]** La regla 409 también se aplica al editar, ignorando la propia tarea.
 - **[Mejora]** Repositorio con escritura atómica (archivo temporal + rename); una base dañada responde 500 genérico en vez de devolver una lista vacía y perder datos.
 - **[Mejora]** Manejo central de errores: JSON invalido 400, cuerpo grande 413, rutas inexistentes 404; sin detalles internos.
@@ -98,7 +111,7 @@ Etiquetas: **[Nuevo]** funcionalidad - **[Mejora]** cambio sobre algo existente 
 ## Problemas conocidos
 | Tema | Detalle |
 |---|---|
-| Persistencia | El JSON completo se lee y se reescribe en cada request; sin paginación. Aceptable para uso personal, no para muchos usuarios. |
+| Persistencia | El JSON completo se lee en cada request (también en resumen y proximas) y se reescribe en cada escritura; sin paginación ni bloqueo entre procesos. Aceptable para uso personal, no para muchos usuarios. |
 | Filtros en la interfaz | La API ya filtra y ordena, pero la interfaz lo hace en el navegador sobre la lista completa. |
 | Sin autenticación | No hay usuarios ni sesiones: cualquiera con acceso a la API ve todas las tareas. |
 | Concurrencia | Dos escrituras simultaneas pueden pisarse (leer y reescribir todo el archivo). |
@@ -106,7 +119,7 @@ Etiquetas: **[Nuevo]** funcionalidad - **[Mejora]** cambio sobre algo existente 
 | Zona horaria | Las fechas se guardan en UTC y se muestran en hora local del navegador; no se contemplan otras zonas. |
 
 ## Próximos pasos
-1. v0.11.0: tests de componentes (Testing Library) y prueba manual en navegador y celular.
-2. v0.12.0: base de datos real (SQLite) con índices, paginación y bloqueo de escrituras.
-3. v0.13.0: cuentas de usuario y autenticación.
-4. v1.0.0: despliegue, PWA para uso sin conexion y recordatorios configurables.
+1. v0.12.0: que el frontend consuma /resumen y /proximas; tests de componentes (Testing Library) y prueba manual en navegador y celular.
+2. v0.13.0: base de datos real (SQLite) con índices, paginación y bloqueo de escrituras.
+3. v0.14.0: cuentas de usuario y autenticación.
+4. v1.0.0: despliegue, PWA para uso sin conexión y recordatorios configurables.

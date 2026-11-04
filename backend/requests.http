@@ -1,0 +1,57 @@
+### Peticiones de prueba para TareasYA
+### Extensión de VS Code: "REST Client" (humao.rest-client). Se hace clic en "Send Request" sobre cada una.
+@base = http://localhost:3001/api
+
+### Disponibilidad
+GET {{base}}/salud
+
+### Crear una tarea
+POST {{base}}/tareas
+Content-Type: application/json
+
+{
+  "titulo": "TP de Física",
+  "descripcion": "Resolver la guía 3",
+  "materia": "Física",
+  "fechaLimite": "2026-12-01T20:00",
+  "prioridad": "alta"
+}
+
+### Crear con datos inválidos (400)
+POST {{base}}/tareas
+Content-Type: application/json
+
+{ "titulo": "", "materia": "Física", "fechaLimite": "2026-12-01T20:00", "prioridad": "alta" }
+
+### Listar todas
+GET {{base}}/tareas
+
+### Listar con filtros y orden
+GET {{base}}/tareas?materia=Física&estado=pendiente&orden=prioridad
+
+### Buscar por texto
+GET {{base}}/tareas?q=física
+
+### Resumen
+GET {{base}}/tareas/resumen
+
+### Próximas a vencer (48 h por defecto)
+GET {{base}}/tareas/proximas
+
+### Próximas a vencer en 24 horas
+GET {{base}}/tareas/proximas?horas=24
+
+### Horas inválidas (400)
+GET {{base}}/tareas/proximas?horas=0
+
+### Obtener una tarea (reemplazar el id por uno real)
+GET {{base}}/tareas/REEMPLAZAR_ID
+
+### Editar una tarea
+PATCH {{base}}/tareas/REEMPLAZAR_ID
+Content-Type: application/json
+
+{ "estado": "completada", "favorito": true }
+
+### Eliminar una tarea
+DELETE {{base}}/tareas/REEMPLAZAR_ID
