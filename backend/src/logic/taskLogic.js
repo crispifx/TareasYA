@@ -137,16 +137,20 @@ function filtrarYOrdenar(tareas, consulta = {}) {
   return resultado;
 }
 
+// ---------- Estado y vencimientos ----------
+const esActiva = (tarea) => tarea.estado !== "completada";
+const estaVencida = (tarea, ahora) => esActiva(tarea) && new Date(tarea.fechaLimite) < ahora;
+const contar = (tareas, condicion) => tareas.filter(condicion).length;
+const conEstado = (estado) => (tarea) => tarea.estado === estado;
+
 // Contadores por estado y tareas vencidas.
 function resumenTareas(tareas, ahora = new Date()) {
   return {
     total: tareas.length,
-    pendientes: tareas.filter((t) => t.estado === "pendiente").length,
-    enCurso: tareas.filter((t) => t.estado === "en curso").length,
-    completadas: tareas.filter((t) => t.estado === "completada").length,
-    vencidas: tareas.filter(
-      (t) => t.estado !== "completada" && new Date(t.fechaLimite) < ahora
-    ).length,
+    pendientes: contar(tareas, conEstado("pendiente")),
+    enCurso: contar(tareas, conEstado("en curso")),
+    completadas: contar(tareas, conEstado("completada")),
+    vencidas: contar(tareas, (t) => estaVencida(t, ahora)),
   };
 }
 
