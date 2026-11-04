@@ -1,14 +1,13 @@
 // taskStorage.js
-// Persistencia local (localStorage). Usada por TaskForm.jsx.
-// Si el frontend pasa a consumir la API del backend,
-// este es el único archivo que habría que reemplazar.
+// Persistencia local (localStorage), usada en "modo local" cuando no hay backend.
 
 const STORAGE_KEY = "tareasya.tareas";
 
 export function loadTasks() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const datos = raw ? JSON.parse(raw) : [];
+    return Array.isArray(datos) ? datos : [];
   } catch {
     return []; // datos corruptos: no rompemos la app
   }

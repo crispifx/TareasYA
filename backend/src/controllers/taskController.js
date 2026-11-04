@@ -1,20 +1,19 @@
 // src/controllers/taskController.js
-// Controller: SOLO traduce HTTP <-> Service. Sin lógica de negocio acá.
+// Solo traduce HTTP <-> Service. Sin lógica de negocio.
 
-const taskService = require("../services/taskService");
+const service = require("../services/taskService");
 
-function postTarea(req, res) {
-  const resultado = taskService.crearNuevaTarea(req.body);
-
-  if (!resultado.ok) {
-    return res.status(resultado.status).json({ error: resultado.error });
-  }
-  return res.status(resultado.status).json(resultado.tarea);
+function responder(res, r) {
+  if (!r.ok) return res.status(r.status).json({ error: r.error });
+  if (r.status === 204) return res.status(204).end();
+  return res.status(r.status).json(r.tarea);
 }
 
-function getTareas(req, res) {
-  const tareas = taskService.listarTareas();
-  return res.status(200).json(tareas);
-}
+const postTarea = (req, res) => responder(res, service.crearNuevaTarea(req.body));
+const getTareas = (req, res) => res.status(200).json(service.listarTareas(req.query));
+const getTarea = (req, res) => responder(res, service.obtenerTarea(req.params.id));
+const patchTarea = (req, res) =>
+  responder(res, service.actualizarTarea(req.params.id, req.body));
+const deleteTarea = (req, res) => responder(res, service.eliminarTarea(req.params.id));
 
-module.exports = { postTarea, getTareas };
+module.exports = { postTarea, getTareas, getTarea, patchTarea, deleteTarea };

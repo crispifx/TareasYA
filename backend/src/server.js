@@ -1,14 +1,7 @@
-// src/server.js
-const express = require("express");
-const taskRoutes = require("./routes/taskRoutes");
-
-const app = express();
-app.use(express.json());
-app.use("/api", taskRoutes);
+// src/server.js: único archivo que abre el puerto.
+const app = require("./app");
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`TareasYA backend escuchando en http://localhost:${PORT}`);
 });
-
-module.exports = app;

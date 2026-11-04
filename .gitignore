@@ -5,5 +5,5 @@ dist/
 !.env.example
 .DS_Store
 *.log
-# Base de datos local del backend (se crea sola al primer POST)
+*.tmp
 backend/data/tareas.json

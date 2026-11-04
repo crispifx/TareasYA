@@ -1,0 +1,50 @@
+:root {
+  --bg: #f4f6fb; --card: #ffffff; --texto: #1c2333; --suave: #5b6478; --borde: #dde2ee;
+  --primario: #3b5bdb; --primario-t: #ffffff; --rojo: #d6336c; --verde: #2b8a3e; --ambar: #e67700;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #12151f; --card: #1b2030; --texto: #e8ebf4; --suave: #9aa3b8; --borde: #2c3348; --primario: #748ffc; --primario-t: #10131c; --rojo: #ff6b9a; --verde: #69db7c; --ambar: #ffa94d; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--texto); }
+.app { max-width: 720px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+h1 { margin: 0; font-size: 1.8rem; } h2 { margin: 0 0 4px; font-size: 1.1rem; } h3 { margin: 0; font-size: 1rem; }
+.sub { margin: 2px 0 0; color: var(--suave); }
+.aviso { background: color-mix(in srgb, var(--ambar) 18%, transparent); border: 1px solid var(--ambar); padding: 8px 10px; border-radius: 8px; font-size: .9rem; }
+.error { background: color-mix(in srgb, var(--rojo) 14%, transparent); border: 1px solid var(--rojo); color: var(--rojo); padding: 8px 10px; border-radius: 8px; margin: 0; }
+.card { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 14px; }
+.task-form, .filtros { display: grid; gap: 10px; }
+label { display: grid; gap: 4px; font-size: .85rem; color: var(--suave); }
+input, select, textarea, button { font: inherit; }
+input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--bg); color: var(--texto); }
+.fila { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fila.centrado { align-items: center; display: flex; flex-wrap: wrap; gap: 14px; }
+label.check, label.inline { display: flex; align-items: center; gap: 6px; }
+label.check input { width: auto; } label.inline select { width: auto; }
+.acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.acciones select { width: auto; }
+button { cursor: pointer; border: 1px solid var(--primario); background: var(--primario); color: var(--primario-t); padding: 9px 14px; border-radius: 8px; font-weight: 600; }
+button:disabled { opacity: .6; cursor: wait; }
+button.secundario { background: transparent; color: var(--primario); }
+button.peligro { background: transparent; color: var(--rojo); border-color: var(--rojo); }
+button.enlace { background: none; border: none; color: var(--primario); text-decoration: underline; padding: 0 4px; font-weight: 500; }
+:focus-visible { outline: 3px solid var(--primario); outline-offset: 2px; }
+.resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.resumen div { background: var(--card); border: 1px solid var(--borde); border-radius: 10px; padding: 10px; text-align: center; display: grid; }
+.resumen strong { font-size: 1.4rem; } .resumen span { font-size: .75rem; color: var(--suave); }
+.resumen .alerta strong { color: var(--rojo); }
+.por-vencer { border-left: 4px solid var(--ambar); font-size: .9rem; }
+.lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tarea { display: grid; gap: 8px; border-left: 5px solid var(--borde); }
+.tarea.prio-alta { border-left-color: var(--rojo); } .tarea.prio-media { border-left-color: var(--ambar); } .tarea.prio-baja { border-left-color: var(--verde); }
+.tarea.hecha { opacity: .65; } .tarea.hecha h3 { text-decoration: line-through; }
+.tarea-cabecera { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+.estrella { background: none; border: none; color: var(--suave); font-size: 1.4rem; padding: 0 4px; line-height: 1; }
+.estrella.activa { color: var(--ambar); }
+.meta { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .85rem; }
+.etiqueta { background: var(--bg); border: 1px solid var(--borde); border-radius: 999px; padding: 2px 9px; }
+.vence { color: var(--suave); } .vence.rojo { color: var(--rojo); font-weight: 600; }
+.descripcion { margin: 0; color: var(--suave); font-size: .9rem; white-space: pre-wrap; }
+.vacio { text-align: center; color: var(--suave); padding: 24px 0; }
+@media (max-width: 480px) { .resumen { grid-template-columns: repeat(2, 1fr); } }

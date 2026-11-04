@@ -1,62 +1,79 @@
-// TaskForm.jsx (VERSIÓN DESPUÉS DEL REFACTOR)
-// El componente ahora solo maneja el estado del formulario y la UI.
-// La validación y la creación de la tarea viven en src/logic/taskLogic.js,
-// donde se pueden testear sin necesidad de renderizar React.
+// TaskForm.jsx
+// Formulario de alta y edición. Solo maneja estado de UI: la validación vive en
+// logic/taskLogic.js y quién guarda (API o local) lo decide el padre vía onSubmit.
 
 import { useState } from "react";
-import { validarDatosTarea, crearTarea } from "../logic/taskLogic";
-import { loadTasks, saveTasks } from "../logic/taskStorage";
+import { validarDatosTarea, aInputFecha } from "../logic/taskLogic";
 
-export default function TaskForm({ onTaskCreated }) {
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [materia, setMateria] = useState("");
-  const [fechaLimite, setFechaLimite] = useState("");
-  const [prioridad, setPrioridad] = useState("media");
+const VACIO = { titulo: "", descripcion: "", materia: "", fechaLimite: "", prioridad: "media" };
+
+export default function TaskForm({ tareaEditar, onSubmit, onCancel }) {
+  const [datos, setDatos] = useState(
+    tareaEditar
+      ? {
+          titulo: tareaEditar.titulo,
+          descripcion: tareaEditar.descripcion,
+          materia: tareaEditar.materia,
+          fechaLimite: aInputFecha(tareaEditar.fechaLimite),
+          prioridad: tareaEditar.prioridad,
+        }
+      : VACIO
+  );
   const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
-  function limpiarFormulario() {
-    setTitulo("");
-    setDescripcion("");
-    setMateria("");
-    setFechaLimite("");
-    setPrioridad("media");
-    setError("");
-  }
+  const cambiar = (campo) => (e) => setDatos({ ...datos, [campo]: e.target.value });
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-
-    const datos = { titulo, descripcion, materia, fechaLimite, prioridad };
     const { valido, error: errorValidacion } = validarDatosTarea(datos);
+    if (!valido) return setError(errorValidacion);
 
-    if (!valido) {
-      setError(errorValidacion);
-      return;
+    setEnviando(true);
+    try {
+      await onSubmit(datos);
+      if (!tareaEditar) setDatos(VACIO);
+      setError("");
+    } catch (err) {
+      setError(err.message); // ej: duplicada (409) o error del servidor
+    } finally {
+      setEnviando(false);
     }
-
-    const nuevaTarea = crearTarea(datos);
-
-    const tareasActuales = loadTasks();
-    saveTasks([...tareasActuales, nuevaTarea]);
-
-    limpiarFormulario();
-    if (onTaskCreated) onTaskCreated(nuevaTarea);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="task-form">
-      {error && <p className="error">{error}</p>}
-      <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título" />
-      <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Descripción" />
-      <input value={materia} onChange={(e) => setMateria(e.target.value)} placeholder="Materia" />
-      <input type="datetime-local" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} />
-      <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)}>
-        <option value="baja">Baja</option>
-        <option value="media">Media</option>
-        <option value="alta">Alta</option>
-      </select>
-      <button type="submit">Crear tarea</button>
+    <form onSubmit={handleSubmit} className="card task-form" noValidate>
+      <h2>{tareaEditar ? "Editar tarea" : "Nueva tarea"}</h2>
+      {error && <p className="error" role="alert">{error}</p>}
+      <label>Título
+        <input value={datos.titulo} onChange={cambiar("titulo")} placeholder="Ej: TP de Física" maxLength={100} />
+      </label>
+      <label>Descripción
+        <textarea value={datos.descripcion} onChange={cambiar("descripcion")} placeholder="Detalle (opcional)" maxLength={500} rows={2} />
+      </label>
+      <div className="fila">
+        <label>Materia
+          <input value={datos.materia} onChange={cambiar("materia")} placeholder="Ej: Física" />
+        </label>
+        <label>Prioridad
+          <select value={datos.prioridad} onChange={cambiar("prioridad")}>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </label>
+      </div>
+      <label>Fecha límite
+        <input type="datetime-local" value={datos.fechaLimite} onChange={cambiar("fechaLimite")} />
+      </label>
+      <div className="acciones">
+        <button type="submit" disabled={enviando}>
+          {tareaEditar ? "Guardar cambios" : "Crear tarea"}
+        </button>
+        {tareaEditar && (
+          <button type="button" className="secundario" onClick={onCancel}>Cancelar</button>
+        )}
+      </div>
     </form>
   );
 }
