@@ -1,11 +1,8 @@
 // src/app.js
 // Arma la app Express SIN abrirla en un puerto (así se puede testear).
 const express = require("express");
-<<<<<<< HEAD
 const path = require("path");
 const fs = require("fs");
-=======
->>>>>>> bb82ac28e40cd704cd0e8f54b607ec4f5379fb81
 const taskRoutes = require("./routes/taskRoutes");
 
 const app = express();
@@ -15,7 +12,6 @@ app.use("/api", taskRoutes);
 // Rutas de la API que no existen
 app.use("/api", (req, res) => res.status(404).json({ error: "Ruta no encontrada" }));
 
-<<<<<<< HEAD
 // Producción: sirve el frontend compilado (frontend/dist) desde el mismo servidor.
 const dist = path.join(__dirname, "..", "..", "frontend", "dist");
 if (fs.existsSync(dist)) {
@@ -23,8 +19,6 @@ if (fs.existsSync(dist)) {
   app.get(/^\/(?!api).*/, (req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
-=======
->>>>>>> bb82ac28e40cd704cd0e8f54b607ec4f5379fb81
 // Manejo central de errores: nunca se filtran detalles internos al cliente.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
