@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: TareasYA API
+  version: 0.11.0
+  description: API REST del organizador de tareas para estudiantes. Sin autenticación (uso personal).
+servers:
+  - url: http://localhost:3001/api
+paths:
+  /salud:
+    get:
+      summary: Comprueba que el servidor responde
+      responses:
+        "200":
+          description: Servidor disponible
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, example: true } } }
+  /tareas:
+    get:
+      summary: Lista tareas con filtros y orden
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Busca en título y materia }
+        - { name: materia, in: query, schema: { type: string } }
+        - { name: estado, in: query, schema: { $ref: "#/components/schemas/Estado" } }
+        - { name: prioridad, in: query, schema: { $ref: "#/components/schemas/Prioridad" } }
+        - { name: favorito, in: query, schema: { type: string, enum: ["true"] }, description: Solo favoritas }
+        - { name: orden, in: query, schema: { type: string, enum: [fecha, prioridad, creacion], default: fecha } }
+      responses:
+        "200":
+          description: Lista de tareas
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Tarea" } }
+    post:
+      summary: Crea una tarea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NuevaTarea" }
+      responses:
+        "201":
+          description: Tarea creada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tarea" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409":
+          description: Ya existe una tarea activa con ese título y materia
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /tareas/resumen:
+    get:
+      summary: Contadores por estado, vencidas y por vencer
+      description: Una tarea completada nunca cuenta como vencida. porVencer usa una ventana de 48 horas.
+      responses:
+        "200":
+          description: Resumen
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Resumen" }
+  /tareas/proximas:
+    get:
+      summary: Tareas activas que vencen pronto
+      description: Entre ahora y ahora + horas (límite inclusivo), la más próxima primero.
+      parameters:
+        - name: horas
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 720, default: 48 }
+      responses:
+        "200":
+          description: Lista, posiblemente vacía
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Tarea" } }
+        "400":
+          description: "El parámetro horas debe ser un entero entre 1 y 720"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /tareas/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      summary: Obtiene una tarea
+      responses:
+        "200":
+          description: La tarea
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tarea" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      summary: Edita campos de una tarea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CambiosTarea" }
+      responses:
+        "200":
+          description: Tarea editada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tarea" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      summary: Elimina una tarea
+      responses:
+        "204": { description: Eliminada }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  responses:
+    Error:
+      description: Error con mensaje
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Estado: { type: string, enum: [pendiente, en curso, completada] }
+    Prioridad: { type: string, enum: [baja, media, alta] }
+    Error:
+      type: object
+      properties: { error: { type: string, example: La prioridad no es válida } }
+    NuevaTarea:
+      type: object
+      required: [titulo, materia, fechaLimite, prioridad]
+      properties:
+        titulo: { type: string, maxLength: 100 }
+        descripcion: { type: string, maxLength: 500 }
+        materia: { type: string }
+        fechaLimite: { type: string, format: date-time }
+        prioridad: { $ref: "#/components/schemas/Prioridad" }
+    CambiosTarea:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        titulo: { type: string, maxLength: 100 }
+        descripcion: { type: string, maxLength: 500 }
+        materia: { type: string }
+        fechaLimite: { type: string, format: date-time }
+        prioridad: { $ref: "#/components/schemas/Prioridad" }
+        estado: { $ref: "#/components/schemas/Estado" }
+        favorito: { type: boolean }
+    Tarea:
+      type: object
+      properties:
+        id: { type: string }
+        titulo: { type: string }
+        descripcion: { type: string }
+        materia: { type: string }
+        fechaLimite: { type: string, format: date-time }
+        prioridad: { $ref: "#/components/schemas/Prioridad" }
+        estado: { $ref: "#/components/schemas/Estado" }
+        favorito: { type: boolean }
+        fechaCreacion: { type: string, format: date-time }
+        fechaActualizacion: { type: string, format: date-time }
+    Resumen:
+      type: object
+      properties:
+        total: { type: integer }
+        pendientes: { type: integer }
+        enCurso: { type: integer }
+        completadas: { type: integer }
+        vencidas: { type: integer }
+        porVencer: { type: integer }
