@@ -6,6 +6,12 @@ function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
   return (
     <li className={`card tarea prio-${tarea.prioridad} ${tarea.estado === "completada" ? "hecha" : ""}`}>
       <div className="tarea-cabecera">
+        <button
+          type="button"
+          className={`check-circulo ${tarea.estado === "completada" ? "ok" : ""}`}
+          onClick={() => onCambiar(tarea.id, { estado: tarea.estado === "completada" ? "pendiente" : "completada" })}
+          aria-label={tarea.estado === "completada" ? "Marcar como pendiente" : "Marcar como completada"}
+        >{tarea.estado === "completada" ? "✓" : ""}</button>
         <h3>{tarea.titulo}</h3>
         <button
           type="button"
@@ -37,12 +43,31 @@ function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
   );
 }
 
-export default function TaskList({ tareas, hayTareas, ...acciones }) {
+const COLUMNAS = [["pendiente", "Pendientes"], ["en curso", "En curso"], ["completada", "Completadas"]];
+
+export default function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
   if (tareas.length === 0) {
     return (
       <p className="vacio">
         {hayTareas ? "Ninguna tarea coincide con los filtros." : "Todavía no cargaste tareas. ¡Creá la primera!"}
       </p>
+    );
+  }
+  if (vista === "tablero") {
+    return (
+      <div className="tablero">
+        {COLUMNAS.map(([estado, titulo]) => {
+          const items = tareas.filter((t) => t.estado === estado);
+          return (
+            <section key={estado} className="columna" aria-label={titulo}>
+              <h2>{titulo} <span>{items.length}</span></h2>
+              <ul className="lista">
+                {items.map((t) => <TaskItem key={t.id} tarea={t} {...acciones} />)}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
     );
   }
   return (
