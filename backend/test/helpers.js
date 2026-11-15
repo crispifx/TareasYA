@@ -7,6 +7,7 @@ const path = require("path");
 function crearEntorno() {
   const DB = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tareasya-")), "db.json");
   process.env.TAREASYA_DB = DB;
+  process.env.TAREASYA_SIN_AUTH = "1"; // los tests de tareas no usan sesión
   const app = require("../src/app");
   let server;
   let base;

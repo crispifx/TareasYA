@@ -5,8 +5,14 @@
 const fs = require("fs");
 const path = require("path");
 
-const rutaDb = () =>
-  process.env.TAREASYA_DB || path.join(__dirname, "..", "..", "data", "tareas.json");
+const { als } = require("../contexto");
+
+// Cada usuario tiene su propio archivo: data/tareas-<id>.json
+const rutaDb = () => {
+  const base = process.env.TAREASYA_DB || path.join(__dirname, "..", "..", "data", "tareas.json");
+  const uid = als.getStore()?.uid;
+  return uid ? path.join(path.dirname(base), `tareas-${uid}.json`) : base;
+};
 
 function asegurarArchivo() {
   const ruta = rutaDb();

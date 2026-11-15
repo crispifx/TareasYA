@@ -1,7 +1,7 @@
 // TaskList.jsx: lista de tareas y acciones rápidas por tarea.
 import { ESTADOS_VALIDOS, estaVencida, textoVencimiento } from "../logic/taskLogic";
 
-function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
+export function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
   const vencida = estaVencida(tarea);
   return (
     <li className={`card tarea prio-${tarea.prioridad} ${tarea.estado === "completada" ? "hecha" : ""}`}>
@@ -45,7 +45,7 @@ function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
 
 const COLUMNAS = [["pendiente", "Pendientes"], ["en curso", "En curso"], ["completada", "Completadas"]];
 
-export default function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
+export function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
   if (tareas.length === 0) {
     return (
       <p className="vacio">
@@ -76,3 +76,5 @@ export default function TaskList({ tareas, hayTareas, vista = "lista", ...accion
     </ul>
   );
 }
+
+export default TaskList;

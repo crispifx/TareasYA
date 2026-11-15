@@ -7,6 +7,7 @@ const path = require("path");
 
 const DB = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tareasya-")), "db.json");
 process.env.TAREASYA_DB = DB;
+process.env.TAREASYA_SIN_AUTH = "1"; // estos tests no usan sesión (ver auth.test.js)
 
 const app = require("../src/app");
 const { validarDatosTarea, validarCambios, filtrarYOrdenar } = require("../src/logic/taskLogic");
