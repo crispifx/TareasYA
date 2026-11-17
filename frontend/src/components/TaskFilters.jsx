@@ -1,44 +1,50 @@
 // TaskFilters.jsx: búsqueda, filtros y orden. Componente controlado.
-import { ESTADOS_VALIDOS, PRIORIDADES_VALIDAS } from "../logic/taskLogic";
+import { ESTADOS_VALIDOS, LIMITES, PRIORIDADES_VALIDAS, limpiarBusqueda } from "../logic/taskLogic";
+import { Icono } from "./Icono";
+
+export const FILTROS_INICIALES = { q: "", materia: "", estado: "", prioridad: "", soloFavoritas: false };
+const mayus = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export default function TaskFilters({ filtros, setFiltros, orden, setOrden, materias }) {
   const set = (campo) => (e) => setFiltros({ ...filtros, [campo]: e.target.value });
   const hayFiltros = Object.values(filtros).some(Boolean);
 
   return (
-    <section className="card filtros" aria-label="Búsqueda y filtros">
-      <input type="search" value={filtros.q} onChange={set("q")} placeholder="Buscar por título o materia" aria-label="Buscar" />
+    <section className="panel filtros" aria-label="Búsqueda y filtros">
+      <div className="filtros-cabecera">
+        <h2><Icono n="filtro" size={16} />Filtrar</h2>
+        {hayFiltros && <button type="button" className="enlace" onClick={() => setFiltros(FILTROS_INICIALES)}>Limpiar</button>}
+      </div>
+      <div className="entrada-icono">
+        <Icono n="buscar" size={16} />
+        <input id="busqueda" type="search" value={filtros.q} maxLength={LIMITES.busquedaMax}
+          onChange={(e) => setFiltros({ ...filtros, q: limpiarBusqueda(e.target.value) })}
+          placeholder="Buscar por título o materia ( / )" aria-label="Buscar" />
+      </div>
       <div className="fila">
         <select value={filtros.materia} onChange={set("materia")} aria-label="Materia">
-          <option value="">Todas las materias</option>
+          <option value="">Materia: todas</option>
           {materias.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         <select value={filtros.estado} onChange={set("estado")} aria-label="Estado">
-          <option value="">Todos los estados</option>
-          {ESTADOS_VALIDOS.map((e) => <option key={e} value={e}>{e}</option>)}
+          <option value="">Estado: todos</option>
+          {ESTADOS_VALIDOS.map((e) => <option key={e} value={e}>{mayus(e)}</option>)}
         </select>
         <select value={filtros.prioridad} onChange={set("prioridad")} aria-label="Prioridad">
-          <option value="">Toda prioridad</option>
-          {PRIORIDADES_VALIDAS.map((p) => <option key={p} value={p}>{p}</option>)}
+          <option value="">Prioridad: todas</option>
+          {PRIORIDADES_VALIDAS.map((p) => <option key={p} value={p}>{mayus(p)}</option>)}
         </select>
       </div>
-      <div className="fila centrado">
-        <label className="check">
+      <div className="pie-filtros">
+        <label className="interruptor">
           <input type="checkbox" checked={filtros.soloFavoritas} onChange={(e) => setFiltros({ ...filtros, soloFavoritas: e.target.checked })} />
           Solo favoritas
         </label>
-        <label className="inline">Ordenar:
-          <select value={orden} onChange={(e) => setOrden(e.target.value)}>
-            <option value="fecha">Fecha límite</option>
-            <option value="prioridad">Prioridad</option>
-            <option value="creacion">Más recientes</option>
-          </select>
-        </label>
-        {hayFiltros && (
-          <button type="button" className="enlace" onClick={() => setFiltros({ q: "", materia: "", estado: "", prioridad: "", soloFavoritas: false })}>
-            Limpiar
-          </button>
-        )}
+        <select value={orden} onChange={(e) => setOrden(e.target.value)} aria-label="Ordenar por" style={{ width: "auto" }}>
+          <option value="fecha">Ordenar: fecha límite</option>
+          <option value="prioridad">Ordenar: prioridad</option>
+          <option value="creacion">Ordenar: más recientes</option>
+        </select>
       </div>
     </section>
   );

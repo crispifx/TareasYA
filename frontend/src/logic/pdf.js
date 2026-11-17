@@ -15,14 +15,16 @@ export function imprimirPDF(tareas, usuario) {
   const w = window.open("", "_blank");
   if (!w) { alert("Permití las ventanas emergentes para generar el PDF"); return; }
   w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>TareasYA - ${esc(usuario)}</title><style>
-  body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:32px;font-size:13px}
-  header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:4px solid #111;padding-bottom:10px;margin-bottom:6px}
-  h1{margin:0;font-size:28px}h1 span{background:#ffd23f;padding:0 6px}header p{margin:0;text-align:right;color:#444}
-  .res{margin:12px 0 22px;font-size:14px}h2{font-size:16px;margin:22px 0 8px;border-left:8px solid #111;padding-left:8px}h2 span{color:#666;font-weight:400}
-  table{width:100%;border-collapse:collapse}th{text-align:left;background:#111;color:#fff;padding:7px 8px;font-size:12px}
-  td{padding:8px;border-bottom:1px solid #ccc;vertical-align:top}td small{display:block;color:#555;margin-top:2px}tr{break-inside:avoid}
-  .p-alta{color:#c1121f;font-weight:700}.p-media{color:#b45f06;font-weight:700}.p-baja{color:#2b8a3e;font-weight:700}
-  @media print{body{margin:14mm}}</style></head><body>
+  body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;color:#151a26;margin:36px;font-size:12.5px;line-height:1.45}
+  header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid #cdd2dd;padding-bottom:12px;margin-bottom:6px}
+  h1{margin:0;font-size:24px;letter-spacing:-.02em}h1 span{color:#2447d6}header p{margin:0;text-align:right;color:#667085}
+  .res{margin:14px 0 22px;font-size:13px;color:#667085}.res b{color:#151a26}
+  h2{font-size:14px;margin:24px 0 8px}h2 span{color:#667085;font-weight:500;margin-left:4px}
+  table{width:100%;border-collapse:collapse}th{text-align:left;color:#667085;font-weight:600;padding:6px 8px;font-size:11px;border-bottom:1px solid #cdd2dd}
+  td{padding:9px 8px;border-bottom:1px solid #e2e5ec;vertical-align:top}td small{display:block;color:#667085;margin-top:2px}tr{break-inside:avoid}
+  .p-alta{color:#cf2a47;font-weight:700}.p-media{color:#a8680b;font-weight:700}.p-baja{color:#19805a;font-weight:700}
+  @media print{body{margin:14mm}}
+  </style></head><body>
   <header><h1>Tareas<span>YA</span></h1><p><b>${esc(usuario)}</b><br>${new Date().toLocaleDateString("es-AR", { dateStyle: "long" })}</p></header>
   <p class="res"><b>${tareas.length}</b> tareas · <b>${hechas}</b> completadas (${pct}%)</p>
   ${secciones || "<p>No hay tareas para mostrar.</p>"}<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);

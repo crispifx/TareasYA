@@ -6,32 +6,160 @@ export const PRIORIDADES_VALIDAS = ["baja", "media", "alta"];
 export const ESTADOS_VALIDOS = ["pendiente", "en curso", "completada"];
 const HORA = 60 * 60 * 1000;
 
-/**
- * Valida los datos ingresados para crear una tarea.
- * @returns {{valido: boolean, error: string|null}}
- */
-export function validarDatosTarea(datos) {
-  const { titulo, materia, fechaLimite, prioridad } = datos;
+// ---------- Límites (mismos valores que el backend) ----------
+export const LIMITES = {
+  tituloMin: 3, tituloMax: 100,
+  materiaMin: 2, materiaMax: 40,
+  descripcionMax: 500,
+  busquedaMax: 50,
+  anios: 5,
+};
 
-  if (!titulo || titulo.trim() === "") {
-    return { valido: false, error: "El título es obligatorio" };
+/** Recorta y colapsa espacios internos: "  TP   de  Física " -> "TP de Física". */
+export const normalizarTexto = (v) => String(v ?? "").replace(/\s+/g, " ").trim();
+
+const CARACTERES_TITULO = /^[\p{L}\p{M}\p{N} .,;:!?¿¡()\-_/&'"+#%°ºª@=*…]+$/u;
+const CARACTERES_MATERIA = /^[\p{L}\p{M}\p{N} .\-'&()]+$/u;
+const FUERA_TITULO = /[^\p{L}\p{M}\p{N} .,;:!?¿¡()\-_/&'"+#%°ºª@=*…]/gu;
+const FUERA_MATERIA = /[^\p{L}\p{M}\p{N} .\-'&()]/gu;
+const CONTROL = /[\u0000-\u001F\u007F]/g;
+const CONTROL_SIN_SALTO = /[\u0000-\u0009\u000B-\u001F\u007F]/;
+const TIENE_LETRA = /\p{L}/u;
+const REPITE = /(.)\1{3,}/u;
+const msgRepite = (n) => `${n} no puede repetir un mismo carácter más de 3 veces seguidas`;
+
+// ---------- Filtros mientras se escribe: lo que no está permitido ni entra ----------
+const sinEspaciosDobles = (v) => v.replace(/^\s+/, "").replace(/\s{2,}/g, " ");
+export const limpiarTitulo = (v) => sinEspaciosDobles(String(v ?? "").replace(FUERA_TITULO, "")).slice(0, LIMITES.tituloMax);
+export const limpiarMateria = (v) => sinEspaciosDobles(String(v ?? "").replace(FUERA_MATERIA, "")).slice(0, LIMITES.materiaMax);
+export const limpiarBusqueda = (v) => String(v ?? "").replace(CONTROL, "").replace(/^\s+/, "").slice(0, LIMITES.busquedaMax);
+export const limpiarDescripcion = (v) => String(v ?? "").replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").slice(0, LIMITES.descripcionMax);
+
+// ---------- Reglas por campo ----------
+export function errorTitulo(valor) {
+  if (typeof valor !== "string" || valor.trim() === "") return "El título es obligatorio";
+  const t = normalizarTexto(valor);
+  if (t.length < LIMITES.tituloMin) return `El título debe tener al menos ${LIMITES.tituloMin} caracteres`;
+  if (t.length > LIMITES.tituloMax) return `El título no puede superar los ${LIMITES.tituloMax} caracteres`;
+  if (!CARACTERES_TITULO.test(t)) return "El título tiene caracteres no permitidos";
+  if (!TIENE_LETRA.test(t)) return "El título debe incluir al menos una letra";
+  if (REPITE.test(t)) return msgRepite("El título");
+  return null;
+}
+
+export function errorMateria(valor) {
+  if (typeof valor !== "string" || valor.trim() === "") return "La materia es obligatoria";
+  const m = normalizarTexto(valor);
+  if (m.length < LIMITES.materiaMin) return `La materia debe tener al menos ${LIMITES.materiaMin} caracteres`;
+  if (m.length > LIMITES.materiaMax) return `La materia no puede superar los ${LIMITES.materiaMax} caracteres`;
+  if (!CARACTERES_MATERIA.test(m)) return "La materia solo admite letras, números, espacios y . - ' & ( )";
+  if (!TIENE_LETRA.test(m)) return "La materia debe incluir al menos una letra";
+  if (REPITE.test(m)) return msgRepite("La materia");
+  return null;
+}
+
+export function errorDescripcion(valor) {
+  if (valor === undefined || valor === null) return null;
+  if (typeof valor !== "string") return "La descripción debe ser texto";
+  if (valor.trim().length > LIMITES.descripcionMax) return `La descripción no puede superar los ${LIMITES.descripcionMax} caracteres`;
+  if (CONTROL_SIN_SALTO.test(valor)) return "La descripción tiene caracteres no permitidos";
+  return null;
+}
+
+const FORMATO_FECHA = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|([+-])(\d{2}):(\d{2}))?)?$/;
+const diasDelMes = (anio, mes) => new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+
+/** Fecha y hora: formato, día real (sin 31 de febrero), hora 00-23 y minutos 00-59. */
+export function errorFormatoFecha(valor) {
+  if (valor === undefined || valor === null || valor === "") return "La fecha límite es obligatoria";
+  if (typeof valor !== "string") return "La fecha límite no es válida";
+  const m = FORMATO_FECHA.exec(valor.trim());
+  if (!m) return "La fecha límite no es válida";
+  if (m[4] === undefined) return "La fecha límite debe incluir fecha y hora";
+  const [anio, mes, dia, hora, min] = [m[1], m[2], m[3], m[4], m[5]].map(Number);
+  const seg = m[6] === undefined ? 0 : Number(m[6]);
+  const offH = m[9] === undefined ? 0 : Number(m[9]);
+  const offM = m[10] === undefined ? 0 : Number(m[10]);
+  const real =
+    anio >= 1970 && mes >= 1 && mes <= 12 && dia >= 1 && dia <= diasDelMes(anio, mes) &&
+    hora <= 23 && min <= 59 && seg <= 59 && offH <= 23 && offM <= 59;
+  return real && !isNaN(new Date(valor).getTime()) ? null : "La fecha límite no es válida";
+}
+
+const topeFecha = (ahora) => { const t = new Date(ahora); t.setFullYear(t.getFullYear() + LIMITES.anios); return t; };
+
+/** Valida un campo suelto. `opciones.fechaOriginal` permite conservar una fecha ya vencida al editar. */
+export function errorDeCampo(campo, valor, { ahora = new Date(), fechaOriginal = null } = {}) {
+  switch (campo) {
+    case "titulo": return errorTitulo(valor);
+    case "materia": return errorMateria(valor);
+    case "descripcion": return errorDescripcion(valor);
+    case "prioridad": return PRIORIDADES_VALIDAS.includes(valor) ? null : "La prioridad no es válida";
+    case "fechaLimite": {
+      const e = errorFormatoFecha(valor);
+      if (e) return e;
+      const f = new Date(valor);
+      if (f > topeFecha(ahora)) return `La fecha límite no puede superar los ${LIMITES.anios} años desde hoy`;
+      const alMinuto = (d) => Math.floor(new Date(d).getTime() / 60000);
+      const igualALaOriginal = fechaOriginal && alMinuto(f) === alMinuto(fechaOriginal);
+      if (!igualALaOriginal && f <= ahora) return "La fecha límite debe ser posterior al momento actual";
+      return null;
+    }
+    default: return null;
   }
-  if (titulo.trim().length > 100) {
-    return { valido: false, error: "El título no puede superar los 100 caracteres" };
+}
+
+const CAMPOS_FORM = ["titulo", "materia", "fechaLimite", "prioridad", "descripcion"];
+
+/** Todos los errores del formulario, por campo (para mostrarlos junto a cada input). */
+export function erroresTarea(datos, opciones = {}) {
+  const errores = {};
+  for (const campo of CAMPOS_FORM) {
+    const e = errorDeCampo(campo, datos[campo], opciones);
+    if (e) errores[campo] = e;
   }
-  if (!materia || materia.trim() === "") {
-    return { valido: false, error: "La materia es obligatoria" };
-  }
-  if (!fechaLimite) {
-    return { valido: false, error: "La fecha límite es obligatoria" };
-  }
-  if (isNaN(new Date(fechaLimite).getTime())) {
-    return { valido: false, error: "La fecha límite no es válida" };
-  }
-  if (!PRIORIDADES_VALIDAS.includes(prioridad)) {
-    return { valido: false, error: "La prioridad no es válida" };
-  }
-  return { valido: true, error: null };
+  return errores;
+}
+
+/**
+ * Valida los datos ingresados para crear o editar una tarea.
+ * @returns {{valido: boolean, error: string|null}} primer error encontrado
+ */
+export function validarDatosTarea(datos, opciones = {}) {
+  const primero = Object.values(erroresTarea(datos, opciones))[0];
+  return primero ? { valido: false, error: primero } : { valido: true, error: null };
+}
+
+/** Límites para <input type="datetime-local">: desde ahora hasta 5 años. */
+export function limitesFecha(ahora = new Date()) {
+  return { min: aInputFecha(ahora.toISOString()), max: aInputFecha(topeFecha(ahora).toISOString()) };
+}
+
+/** Valor de <input datetime-local> (hora local) -> ISO en UTC, sin ambigüedad de zona. */
+export const fechaAISO = (valor) => new Date(valor).toISOString();
+
+/** Si la materia ya existe (sin distinguir mayúsculas ni tildes), reutiliza su escritura. */
+export function canonizarMateria(materia, existentes = []) {
+  const clave = (v) => normalizarTexto(v).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  const m = normalizarTexto(materia);
+  return existentes.find((e) => clave(e) === clave(m)) ?? m;
+}
+
+// ---------- Credenciales ----------
+const COMUNES = ["12345678", "123456789", "1234567890", "password", "password1", "contrasena1", "contraseña1", "qwerty123", "abc12345", "iloveyou1", "admin123", "tareasya1"];
+
+export function errorUsuario(usuario) {
+  return typeof usuario === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_.-]{1,28}[a-zA-Z0-9]$/.test(usuario)
+    ? null
+    : "Usuario: 3 a 30 caracteres (letras, números, . _ -), sin empezar ni terminar con símbolo";
+}
+
+export function errorPassword(password, usuario = "") {
+  if (typeof password !== "string" || password.length < 8 || password.length > 72) return "La contraseña debe tener entre 8 y 72 caracteres";
+  if (!/\p{L}/u.test(password) || !/\d/.test(password)) return "La contraseña debe combinar letras y números";
+  if (usuario && password.toLowerCase() === usuario.toLowerCase()) return "La contraseña no puede ser igual al usuario";
+  if (COMUNES.includes(password.toLowerCase())) return "Esa contraseña es demasiado común";
+  return null;
 }
 
 export function generarIdTarea() {
@@ -44,9 +172,9 @@ export function crearTarea(datos) {
   const ahora = new Date().toISOString();
   return {
     id: generarIdTarea(),
-    titulo: titulo.trim(),
+    titulo: normalizarTexto(titulo),
     descripcion: descripcion.trim(),
-    materia: materia.trim(),
+    materia: normalizarTexto(materia),
     fechaLimite: new Date(fechaLimite).toISOString(),
     prioridad,
     estado: "pendiente",
@@ -59,8 +187,8 @@ export function crearTarea(datos) {
 /** Devuelve una tarea nueva con los cambios aplicados (no muta la original). */
 export function aplicarCambios(tarea, cambios) {
   const nueva = { ...tarea, ...cambios };
-  if (cambios.titulo !== undefined) nueva.titulo = cambios.titulo.trim();
-  if (cambios.materia !== undefined) nueva.materia = cambios.materia.trim();
+  if (cambios.titulo !== undefined) nueva.titulo = normalizarTexto(cambios.titulo);
+  if (cambios.materia !== undefined) nueva.materia = normalizarTexto(cambios.materia);
   if (cambios.descripcion !== undefined) nueva.descripcion = cambios.descripcion.trim();
   if (cambios.fechaLimite !== undefined)
     nueva.fechaLimite = new Date(cambios.fechaLimite).toISOString();
@@ -70,14 +198,14 @@ export function aplicarCambios(tarea, cambios) {
 
 /** ¿Hay otra tarea activa con el mismo título y materia? */
 export function existeDuplicada(tareas, titulo, materia, excluirId = null) {
-  const t = titulo.trim().toLowerCase();
-  const m = materia.trim().toLowerCase();
+  const t = normalizarTexto(titulo).toLowerCase();
+  const m = normalizarTexto(materia).toLowerCase();
   return tareas.some(
     (x) =>
       x.id !== excluirId &&
       x.estado !== "completada" &&
-      x.titulo.toLowerCase() === t &&
-      x.materia.toLowerCase() === m
+      normalizarTexto(x.titulo).toLowerCase() === t &&
+      normalizarTexto(x.materia).toLowerCase() === m
   );
 }
 
@@ -152,4 +280,43 @@ export function textoVencimiento(tarea, ahora = new Date()) {
   if (horas < 1) return "vence en menos de 1 h";
   if (horas < 24) return `vence en ${horas} h`;
   return dias === 1 ? "vence mañana" : `vence en ${dias} d`;
+}
+
+// ---------- Agrupar por vencimiento y resumen por materia ----------
+export const GRUPOS_VENCIMIENTO = [
+  ["vencidas", "Vencidas"], ["hoy", "Hoy"], ["manana", "Mañana"],
+  ["semana", "Esta semana"], ["despues", "Más adelante"], ["completadas", "Completadas"],
+];
+const inicioDia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** En qué grupo cae una tarea: completadas, vencidas o según los días que faltan. */
+export function claveVencimiento(tarea, ahora = new Date()) {
+  if (tarea.estado === "completada") return "completadas";
+  const f = new Date(tarea.fechaLimite);
+  if (f < ahora) return "vencidas";
+  const dias = Math.round((inicioDia(f) - inicioDia(ahora)) / 864e5);
+  return dias === 0 ? "hoy" : dias === 1 ? "manana" : dias <= 7 ? "semana" : "despues";
+}
+
+/** Grupos no vacíos, en orden fijo; dentro de cada uno se conserva el orden recibido. */
+export function agruparPorVencimiento(tareas, ahora = new Date()) {
+  const porClave = new Map(GRUPOS_VENCIMIENTO.map(([k]) => [k, []]));
+  tareas.forEach((t) => porClave.get(claveVencimiento(t, ahora)).push(t));
+  return GRUPOS_VENCIMIENTO
+    .filter(([k]) => porClave.get(k).length)
+    .map(([clave, titulo]) => ({ clave, titulo, tareas: porClave.get(clave) }));
+}
+
+/** Total, completadas y porcentaje por materia; las más cargadas primero. */
+export function resumenPorMateria(tareas) {
+  const m = new Map();
+  tareas.forEach((t) => {
+    const r = m.get(t.materia) || { materia: t.materia, total: 0, completadas: 0 };
+    r.total += 1;
+    if (t.estado === "completada") r.completadas += 1;
+    m.set(t.materia, r);
+  });
+  return [...m.values()]
+    .map((r) => ({ ...r, pct: Math.round((r.completadas / r.total) * 100) }))
+    .sort((a, b) => b.total - a.total || a.materia.localeCompare(b.materia, "es"));
 }

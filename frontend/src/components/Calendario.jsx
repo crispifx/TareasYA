@@ -1,6 +1,7 @@
 // Calendario.jsx: vista mensual; al elegir un día se listan sus tareas.
 import { useMemo, useState } from "react";
 import { TaskList } from "./TaskList";
+import { Icono } from "./Icono";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const clave = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -23,12 +24,12 @@ export default function Calendario({ tareas, ...acciones }) {
   const delDia = porDia[sel] || [];
 
   return (
-    <section className="calendario card" aria-label="Calendario">
+    <section className="calendario panel" aria-label="Calendario">
       <div className="cal-barra">
-        <button type="button" className="secundario" onClick={() => mover(-1)} aria-label="Mes anterior">◀</button>
+        <button type="button" className="icono" onClick={() => mover(-1)} aria-label="Mes anterior"><Icono n="izquierda" /></button>
         <h2>{mes.toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</h2>
-        <button type="button" className="secundario" onClick={() => mover(1)} aria-label="Mes siguiente">▶</button>
-        <button type="button" className="secundario" onClick={() => { setMes(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); setSel(clave(hoy)); }}>Hoy</button>
+        <button type="button" className="icono" onClick={() => mover(1)} aria-label="Mes siguiente"><Icono n="derecha" /></button>
+        <button type="button" onClick={() => { setMes(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); setSel(clave(hoy)); }}>Hoy</button>
       </div>
       <div className="cal-grid">
         {DIAS.map((d) => <b key={d} className="cal-dia-nombre">{d}</b>)}
@@ -38,7 +39,8 @@ export default function Calendario({ tareas, ...acciones }) {
           return (
             <button key={k} type="button" onClick={() => setSel(k)}
               className={`cal-dia ${k === clave(hoy) ? "hoy" : ""} ${k === sel ? "sel" : ""}`}
-              aria-label={`${d.getDate()}: ${ts.length} tareas`}>
+              aria-label={`${d.getDate()}: ${ts.length} ${ts.length === 1 ? "tarea" : "tareas"}`}
+              aria-pressed={k === sel}>
               <span>{d.getDate()}</span>
               {ts.slice(0, 3).map((t) => (
                 <i key={t.id} className={`cal-chip prio-${t.prioridad} ${t.estado === "completada" ? "hecha" : ""}`}>{t.titulo}</i>

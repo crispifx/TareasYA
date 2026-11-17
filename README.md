@@ -41,6 +41,10 @@ Los estudiantes organizan sus entregas en cuadernos, mensajes sueltos o el chat 
 
 **Experiencia**
 - 🎨 Interfaz sobria: panel lateral con formulario y filtros, bloque de fecha en cada tarea (tintado si vence pronto o ya venció), iconos SVG
+- 🗂️ Lista agrupada por vencimiento (Vencidas, Hoy, Mañana, Esta semana, Más adelante, Completadas) cuando se ordena por fecha
+- 📈 Panel **Por materia** con el avance de cada una; un clic filtra la lista
+- ↩️ Eliminar con **Deshacer** (6 s) en lugar de cuadro de confirmación, y avisos al crear, guardar o completar
+- ⌨️ Atajos: `/` para buscar y `n` para una tarea nueva
 - ✍️ Formulario guiado: errores junto a cada campo, contadores, atajos de fecha (hoy, mañana, en 1 semana) y caracteres no permitidos que ni se pueden escribir
 - 🌗 **Selector de tema** (automático, claro u oscuro), guardado en tu navegador
 - ⬇️ **Exportar** todas tus tareas a un archivo JSON
@@ -149,7 +153,7 @@ La app se publica como **un único Web Service**: el servidor Express sirve la A
 
 ```bash
 cd backend  && npm test    # 62 tests
-cd frontend && npm test    # 36 tests
+cd frontend && npm test    # 42 tests
 cd frontend && npm run build
 ```
 

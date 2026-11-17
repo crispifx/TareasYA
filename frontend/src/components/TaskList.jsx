@@ -1,43 +1,66 @@
 // TaskList.jsx: lista de tareas y acciones rápidas por tarea.
-import { ESTADOS_VALIDOS, estaVencida, textoVencimiento } from "../logic/taskLogic";
+import { ESTADOS_VALIDOS, agruparPorVencimiento, estaVencida, textoVencimiento } from "../logic/taskLogic";
+import { Icono } from "./Icono";
+
+const mayus = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const HORAS_AVISO = 48;
+
+function BloqueFecha({ tarea, vencida }) {
+  const f = new Date(tarea.fechaLimite);
+  const horas = (f - new Date()) / 36e5;
+  const estado = tarea.estado === "completada" ? "hecha" : vencida ? "vencida" : horas <= HORAS_AVISO ? "pronto" : "";
+  return (
+    <div className={`fecha-bloque ${estado}`} aria-hidden="true">
+      <span className="dia">{f.getDate()}</span>
+      <span className="mes">{f.toLocaleDateString("es-AR", { month: "short" }).replace(".", "")}</span>
+      <span className="hora">{f.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+    </div>
+  );
+}
 
 export function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
   const vencida = estaVencida(tarea);
+  const hecha = tarea.estado === "completada";
   return (
-    <li className={`card tarea prio-${tarea.prioridad} ${tarea.estado === "completada" ? "hecha" : ""}`}>
-      <div className="tarea-cabecera">
-        <button
-          type="button"
-          className={`check-circulo ${tarea.estado === "completada" ? "ok" : ""}`}
-          onClick={() => onCambiar(tarea.id, { estado: tarea.estado === "completada" ? "pendiente" : "completada" })}
-          aria-label={tarea.estado === "completada" ? "Marcar como pendiente" : "Marcar como completada"}
-        >{tarea.estado === "completada" ? "✓" : ""}</button>
-        <h3>{tarea.titulo}</h3>
-        <button
-          type="button"
-          className={`estrella ${tarea.favorito ? "activa" : ""}`}
-          onClick={() => onCambiar(tarea.id, { favorito: !tarea.favorito })}
-          aria-pressed={tarea.favorito}
-          aria-label={tarea.favorito ? "Quitar de favoritas" : "Marcar como favorita"}
-        >
-          {tarea.favorito ? "★" : "☆"}
-        </button>
-      </div>
-      <p className="meta">
-        <span className="etiqueta">{tarea.materia}</span>
-        <span className={`etiqueta prio`}>{tarea.prioridad}</span>
-        <span className={vencida ? "vence rojo" : "vence"}>
-          {new Date(tarea.fechaLimite).toLocaleString("es-AR", { dateStyle: "medium", timeStyle: "short" })}
-          {tarea.estado !== "completada" && ` · ${textoVencimiento(tarea)}`}
-        </span>
-      </p>
-      {tarea.descripcion && <p className="descripcion">{tarea.descripcion}</p>}
-      <div className="acciones">
-        <select value={tarea.estado} onChange={(e) => onCambiar(tarea.id, { estado: e.target.value })} aria-label="Estado de la tarea">
-          {ESTADOS_VALIDOS.map((e) => <option key={e} value={e}>{e}</option>)}
-        </select>
-        <button type="button" className="secundario" onClick={() => onEditar(tarea)}>Editar</button>
-        <button type="button" className="peligro" onClick={() => onEliminar(tarea)}>Eliminar</button>
+    <li className={`panel tarea ${hecha ? "hecha" : ""}`}>
+      <BloqueFecha tarea={tarea} vencida={vencida} />
+      <div className="tarea-cuerpo">
+        <div className="tarea-cabecera">
+          <button
+            type="button"
+            className={`check-circulo ${hecha ? "ok" : ""}`}
+            onClick={() => onCambiar(tarea.id, { estado: hecha ? "pendiente" : "completada" })}
+            aria-label={hecha ? "Marcar como pendiente" : "Marcar como completada"}
+            title={hecha ? "Marcar como pendiente" : "Marcar como completada"}
+          ><Icono n="check" size={14} strokeWidth={3} /></button>
+          <h3>{tarea.titulo}</h3>
+          <button
+            type="button"
+            className={`estrella ${tarea.favorito ? "activa" : ""}`}
+            onClick={() => onCambiar(tarea.id, { favorito: !tarea.favorito })}
+            aria-pressed={tarea.favorito}
+            aria-label={tarea.favorito ? "Quitar de favoritas" : "Marcar como favorita"}
+            title={tarea.favorito ? "Quitar de favoritas" : "Marcar como favorita"}
+          ><Icono n="estrella" size={17} relleno={tarea.favorito} /></button>
+        </div>
+        <div className="meta">
+          <span className="chip materia"><Icono n="libro" size={13} />{tarea.materia}</span>
+          <span className={`chip prio prio-${tarea.prioridad}`}>{mayus(tarea.prioridad)}</span>
+          <span className={`chip vence ${vencida ? "rojo" : ""}`}>
+            <Icono n="reloj" size={13} />
+            {new Date(tarea.fechaLimite).toLocaleString("es-AR", { dateStyle: "medium", timeStyle: "short" })}
+            {!hecha && ` · ${textoVencimiento(tarea)}`}
+          </span>
+        </div>
+        {tarea.descripcion && <p className="descripcion">{tarea.descripcion}</p>}
+        <div className="tarea-acciones">
+          <select value={tarea.estado} onChange={(e) => onCambiar(tarea.id, { estado: e.target.value })} aria-label="Estado de la tarea">
+            {ESTADOS_VALIDOS.map((e) => <option key={e} value={e}>{mayus(e)}</option>)}
+          </select>
+          <span className="sep" />
+          <button type="button" className="fantasma chico" onClick={() => onEditar(tarea)}><Icono n="lapiz" size={15} />Editar</button>
+          <button type="button" className="fantasma peligro chico" onClick={() => onEliminar(tarea)}><Icono n="papelera" size={15} />Eliminar</button>
+        </div>
       </div>
     </li>
   );
@@ -45,12 +68,13 @@ export function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
 
 const COLUMNAS = [["pendiente", "Pendientes"], ["en curso", "En curso"], ["completada", "Completadas"]];
 
-export function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
+export function TaskList({ tareas, hayTareas, vista = "lista", agrupar = false, ...acciones }) {
   if (tareas.length === 0) {
     return (
-      <p className="vacio">
-        {hayTareas ? "Ninguna tarea coincide con los filtros." : "Todavía no cargaste tareas. ¡Creá la primera!"}
-      </p>
+      <div className="vacio">
+        <strong>{hayTareas ? "Ninguna tarea coincide con los filtros" : "Todavía no cargaste tareas"}</strong>
+        <span>{hayTareas ? "Probá con otra búsqueda o limpiá los filtros." : "Creá la primera desde el formulario."}</span>
+      </div>
     );
   }
   if (vista === "tablero") {
@@ -67,6 +91,20 @@ export function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
             </section>
           );
         })}
+      </div>
+    );
+  }
+  if (agrupar) {
+    return (
+      <div className="grupos">
+        {agruparPorVencimiento(tareas).map((g) => (
+          <section key={g.clave} className="grupo" aria-label={g.titulo}>
+            <h2 className={`grupo-titulo ${g.clave}`}>{g.titulo} <span>{g.tareas.length}</span></h2>
+            <ul className="lista">
+              {g.tareas.map((t) => <TaskItem key={t.id} tarea={t} {...acciones} />)}
+            </ul>
+          </section>
+        ))}
       </div>
     );
   }
