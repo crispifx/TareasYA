@@ -1,6 +1,6 @@
 # Referencia de la API
 
-Base: `http://localhost:3001/api` · Formato: JSON · Sin autenticación (uso personal).
+Base: `http://localhost:3001/api` · Formato: JSON · Las rutas de tareas exigen sesión (`Authorization: Bearer <token>`).
 Los errores siempre tienen la forma `{ "error": "mensaje" }`.
 
 ## Resumen de endpoints
@@ -8,7 +8,7 @@ Los errores siempre tienen la forma `{ "error": "mensaje" }`.
 | Método | Ruta | Descripción | Éxito | Errores |
 |--------|------|-------------|-------|---------|
 | GET | `/salud` | Comprueba que el servidor responde | 200 | |
-| GET | `/tareas` | Lista tareas con filtros y orden | 200 | |
+| GET | `/tareas` | Lista tareas con filtros y orden | 200 | 400 |
 | POST | `/tareas` | Crea una tarea | 201 | 400, 409 |
 | GET | `/tareas/resumen` | Contadores por estado, vencidas y por vencer | 200 | |
 | GET | `/tareas/proximas` | Tareas activas que vencen pronto | 200 | 400 |
@@ -23,15 +23,32 @@ Los errores siempre tienen la forma `{ "error": "mensaje" }`.
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | `id` | texto | Lo genera el servidor |
-| `titulo` | texto | Obligatorio, hasta 100 caracteres |
+| `titulo` | texto | Obligatorio, 3 a 100 caracteres (ver reglas) |
 | `descripcion` | texto | Opcional, hasta 500 caracteres |
-| `materia` | texto | Obligatoria |
-| `fechaLimite` | fecha ISO 8601 | Obligatoria; se guarda en UTC |
+| `materia` | texto | Obligatoria, 2 a 40 caracteres (ver reglas) |
+| `fechaLimite` | fecha ISO 8601 | Obligatoria, con fecha **y hora**; se guarda en UTC |
 | `prioridad` | `baja` \| `media` \| `alta` | Obligatoria |
 | `estado` | `pendiente` \| `en curso` \| `completada` | Inicia en `pendiente` |
 | `favorito` | booleano | Inicia en `false` |
 | `fechaCreacion` | fecha ISO | No editable |
 | `fechaActualizacion` | fecha ISO | Cambia en cada edición |
+
+## Reglas de validación
+
+Los espacios al borde se recortan y los espacios repetidos dentro del texto se reducen a uno (`"TP   de  Física"` se guarda como `"TP de Física"`). Cada incumplimiento responde 400 con un mensaje en español.
+
+| Campo | Regla |
+|-------|-------|
+| `titulo` | 3 a 100 caracteres; al menos una letra; solo letras (con tildes y ñ), números, espacios y `. , ; : ! ? ¿ ¡ ( ) - _ / & ' " + # % ° º ª @ = * …`; sin repetir un mismo carácter más de 3 veces seguidas |
+| `materia` | 2 a 40 caracteres; al menos una letra; solo letras, números, espacios y `. - ' & ( )`; sin repetir un mismo carácter más de 3 veces seguidas |
+| `descripcion` | Hasta 500 caracteres; sin caracteres de control (el salto de línea sí se permite) |
+| `fechaLimite` | ISO 8601 **con hora** (`2026-12-01T20:00` o `…Z`); el día debe existir (no hay 31 de febrero), hora 00-23 y minutos 00-59; debe ser **posterior al momento actual** y no pasar de **5 años** hacia adelante |
+| `prioridad` / `estado` | Valores de las listas del modelo |
+| `favorito` | Booleano |
+
+Al editar con `PATCH`, la fecha solo se compara con "ahora" si **cambia**: una tarea ya vencida puede cambiar de estado, título, etc. sin tocar su fecha; reenviar la misma fecha tampoco cuenta como cambio.
+
+Credenciales (`/auth/registro`): usuario de 3 a 30 caracteres (letras, números, `. _ -`) que empiece y termine con letra o número; contraseña de 8 a 72 caracteres con letras y números, distinta del usuario y fuera de una lista corta de contraseñas comunes. El ingreso (`/auth/login`) no revalida la contraseña, para no dejar afuera cuentas anteriores.
 
 ## `GET /tareas`
 
@@ -39,16 +56,18 @@ Parámetros de consulta (todos opcionales):
 
 | Parámetro | Valores | Efecto |
 |-----------|---------|--------|
-| `q` | texto | Busca en título y materia, sin distinguir mayúsculas |
-| `materia` | texto | Filtra por materia exacta (sin distinguir mayúsculas) |
+| `q` | texto, hasta 50 caracteres | Busca en título y materia, sin distinguir mayúsculas |
+| `materia` | texto, hasta 40 caracteres | Filtra por materia exacta (sin distinguir mayúsculas) |
 | `estado` | `pendiente`, `en curso`, `completada` | Filtra por estado |
 | `prioridad` | `baja`, `media`, `alta` | Filtra por prioridad |
-| `favorito` | `true` | Solo favoritas |
+| `favorito` | `true` o `false` | Con `true`, solo favoritas |
 | `orden` | `fecha` (por defecto), `prioridad`, `creacion` | Orden del resultado |
 
 ```bash
 curl "http://localhost:3001/api/tareas?materia=Física&orden=prioridad"
 ```
+
+Un valor fuera de la lista (por ejemplo `estado=hecho` u `orden=azar`), un parámetro repetido (`?q=a&q=b`) o un texto demasiado largo responde **400** con un mensaje como `El estado no es válido`. Un valor vacío (`estado=`) equivale a no filtrar.
 
 ## `POST /tareas`
 
@@ -57,13 +76,13 @@ Cuerpo: `titulo`, `materia`, `fechaLimite`, `prioridad` (obligatorios) y `descri
 ```bash
 curl -X POST http://localhost:3001/api/tareas \
   -H "Content-Type: application/json" \
-  -d '{"titulo":"TP de Física","materia":"Física","fechaLimite":"2026-12-01T20:00","prioridad":"alta"}'
+  -d '{"titulo":"TP de Física","materia":"Física","fechaLimite":"2030-12-01T20:00","prioridad":"alta"}'
 ```
 
 | Código | Cuándo |
 |--------|--------|
 | 201 | Creada; devuelve la tarea |
-| 400 | Dato inválido (el mensaje indica cuál) o JSON mal formado |
+| 400 | Dato inválido (el mensaje indica cuál, ver *Reglas de validación*) o JSON mal formado |
 | 409 | Ya existe una tarea **activa** con ese título y materia |
 
 ## `GET /tareas/resumen`
@@ -106,7 +125,7 @@ curl -X PATCH http://localhost:3001/api/tareas/ID \
 | Código | Cuándo |
 |--------|--------|
 | 200 | Editada; devuelve la tarea |
-| 400 | Sin cambios, campo no editable o valor inválido |
+| 400 | Sin cambios, campo no editable, valor inválido o fecha nueva en el pasado |
 | 404 | No existe esa tarea |
 | 409 | La edición dejaría dos tareas activas con el mismo título y materia |
 

@@ -20,6 +20,8 @@ function crearEntorno() {
     },
     cerrar: () => server.close(),
     limpiar: () => fs.writeFileSync(DB, "[]"),
+    // Inserta tareas directo en la base (la API ya no deja crear tareas con fecha pasada).
+    sembrar: (tareas) => fs.writeFileSync(DB, JSON.stringify(tareas)),
     pedir: (ruta, metodo = "GET", cuerpo) =>
       fetch(base + ruta, {
         method: metodo,
@@ -38,4 +40,12 @@ const tareaValida = (extra = {}) => ({
   ...extra,
 });
 
-module.exports = { crearEntorno, enHoras, tareaValida };
+const tareaGuardada = (extra = {}) => ({
+  id: "s" + Math.random().toString(36).slice(2, 8),
+  titulo: "Guardada", descripcion: "", materia: "Física", prioridad: "media",
+  estado: "pendiente", favorito: false, fechaLimite: enHoras(200),
+  fechaCreacion: new Date().toISOString(), fechaActualizacion: new Date().toISOString(),
+  ...extra,
+});
+
+module.exports = { crearEntorno, enHoras, tareaValida, tareaGuardada };

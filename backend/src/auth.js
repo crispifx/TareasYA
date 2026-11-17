@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { als } = require("./contexto");
+const { errorUsuario, errorPassword } = require("./logic/taskLogic");
 
 const base = () => process.env.TAREASYA_DB || path.join(__dirname, "..", "data", "tareas.json");
 const dir = () => path.dirname(base());
@@ -52,10 +53,8 @@ function coincide(pw, guardado) {
 
 function registro(req, res) {
   const { usuario = "", password = "" } = req.body || {};
-  if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(usuario))
-    return res.status(400).json({ error: "Usuario: 3 a 30 caracteres (letras, números, . _ -)" });
-  if (typeof password !== "string" || password.length < 6 || password.length > 100)
-    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+  const fallo = errorUsuario(usuario) || errorPassword(password, usuario);
+  if (fallo) return res.status(400).json({ error: fallo });
   const us = leerUsuarios();
   if (us.some((u) => u.usuario.toLowerCase() === usuario.toLowerCase()))
     return res.status(409).json({ error: "Ese usuario ya existe" });

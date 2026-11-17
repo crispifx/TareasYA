@@ -74,14 +74,15 @@ function eliminar(id) {
 
 // ¿Hay otra tarea activa con el mismo título y materia?
 function existeMateriaYTitulo(titulo, materia, excluirId = null) {
-  const t1 = String(titulo).trim().toLowerCase();
-  const m1 = String(materia).trim().toLowerCase();
+  const limpio = (v) => String(v).replace(/\s+/g, " ").trim().toLowerCase();
+  const t1 = limpio(titulo);
+  const m1 = limpio(materia);
   return obtenerTodas().some(
     (t) =>
       t.id !== excluirId &&
       t.estado !== "completada" &&
-      String(t.titulo).toLowerCase() === t1 &&
-      String(t.materia).toLowerCase() === m1
+      limpio(t.titulo) === t1 &&
+      limpio(t.materia) === m1
   );
 }
 

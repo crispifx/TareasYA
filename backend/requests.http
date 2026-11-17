@@ -13,7 +13,7 @@ Content-Type: application/json
   "titulo": "TP de Física",
   "descripcion": "Resolver la guía 3",
   "materia": "Física",
-  "fechaLimite": "2026-12-01T20:00",
+  "fechaLimite": "2030-12-01T20:00",
   "prioridad": "alta"
 }
 
@@ -21,7 +21,7 @@ Content-Type: application/json
 POST {{base}}/tareas
 Content-Type: application/json
 
-{ "titulo": "", "materia": "Física", "fechaLimite": "2026-12-01T20:00", "prioridad": "alta" }
+{ "titulo": "", "materia": "Física", "fechaLimite": "2030-12-01T20:00", "prioridad": "alta" }
 
 ### Listar todas
 GET {{base}}/tareas

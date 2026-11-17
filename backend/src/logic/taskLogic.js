@@ -12,37 +12,113 @@ const CAMPOS_EDITABLES = [
   "estado",
   "favorito",
 ];
+const MIN_TITULO = 3;
 const MAX_TITULO = 100;
+const MIN_MATERIA = 2;
+const MAX_MATERIA = 40;
+const MAX_DESCRIPCION = 500;
+const MAX_BUSQUEDA = 50;
+const ANIOS_MAXIMOS = 5;
 const HORA_MS = 60 * 60 * 1000;
 const HORAS_POR_DEFECTO = 48;
 const HORAS_MAXIMAS = 720; // 30 días
-const MAX_DESCRIPCION = 500;
 
 const esTexto = (v) => typeof v === "string";
 const vacio = (v) => !esTexto(v) || v.trim() === "";
+
+// Recorta y colapsa los espacios internos: "  TP   de  Física " -> "TP de Física".
+const normalizarTexto = (v) => String(v).replace(/\s+/g, " ").trim();
+
+// Listas blancas de caracteres (letras con tilde y ñ incluidas).
+const CARACTERES_TITULO = /^[\p{L}\p{M}\p{N} .,;:!?¿¡()\-_/&'"+#%°ºª@=*…]+$/u;
+const CARACTERES_MATERIA = /^[\p{L}\p{M}\p{N} .\-'&()]+$/u;
+const CONTROL_SIN_SALTO = /[\u0000-\u0009\u000B-\u001F\u007F]/;
+const TIENE_LETRA = /\p{L}/u;
+const REPITE_CARACTER = /(.)\1{3,}/u;
+
+const msgRepite = (nombre) =>
+  `${nombre} no puede repetir un mismo carácter más de 3 veces seguidas`;
+
+function errorTitulo(valor) {
+  if (vacio(valor)) return "El título es obligatorio";
+  const t = normalizarTexto(valor);
+  if (t.length < MIN_TITULO) return `El título debe tener al menos ${MIN_TITULO} caracteres`;
+  if (t.length > MAX_TITULO) return `El título no puede superar los ${MAX_TITULO} caracteres`;
+  if (!CARACTERES_TITULO.test(t)) return "El título tiene caracteres no permitidos";
+  if (!TIENE_LETRA.test(t)) return "El título debe incluir al menos una letra";
+  if (REPITE_CARACTER.test(t)) return msgRepite("El título");
+  return null;
+}
+
+function errorMateria(valor) {
+  if (vacio(valor)) return "La materia es obligatoria";
+  const m = normalizarTexto(valor);
+  if (m.length < MIN_MATERIA) return `La materia debe tener al menos ${MIN_MATERIA} caracteres`;
+  if (m.length > MAX_MATERIA) return `La materia no puede superar los ${MAX_MATERIA} caracteres`;
+  if (!CARACTERES_MATERIA.test(m))
+    return "La materia solo admite letras, números, espacios y . - ' & ( )";
+  if (!TIENE_LETRA.test(m)) return "La materia debe incluir al menos una letra";
+  if (REPITE_CARACTER.test(m)) return msgRepite("La materia");
+  return null;
+}
+
+function errorDescripcion(valor) {
+  if (valor === undefined) return null;
+  if (!esTexto(valor)) return "La descripción debe ser texto";
+  if (valor.trim().length > MAX_DESCRIPCION)
+    return `La descripción no puede superar los ${MAX_DESCRIPCION} caracteres`;
+  if (CONTROL_SIN_SALTO.test(valor)) return "La descripción tiene caracteres no permitidos";
+  return null;
+}
+
+// Fecha y hora: ISO 8601 con hora obligatoria, y que el día exista de verdad.
+const FORMATO_FECHA =
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|([+-])(\d{2}):(\d{2}))?)?$/;
+const diasDelMes = (anio, mes) => new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+
+function errorFormatoFecha(valor) {
+  if (valor === undefined || valor === null || valor === "")
+    return "La fecha límite es obligatoria";
+  if (!esTexto(valor)) return "La fecha límite no es válida";
+  const m = FORMATO_FECHA.exec(valor.trim());
+  if (!m) return "La fecha límite no es válida";
+  if (m[4] === undefined) return "La fecha límite debe incluir fecha y hora";
+  const [anio, mes, dia, hora, min] = [m[1], m[2], m[3], m[4], m[5]].map(Number);
+  const seg = m[6] === undefined ? 0 : Number(m[6]);
+  const offH = m[9] === undefined ? 0 : Number(m[9]);
+  const offM = m[10] === undefined ? 0 : Number(m[10]);
+  const real =
+    anio >= 1970 && mes >= 1 && mes <= 12 && dia >= 1 && dia <= diasDelMes(anio, mes) &&
+    hora <= 23 && min <= 59 && seg <= 59 && offH <= 23 && offM <= 59;
+  return real && !isNaN(new Date(valor).getTime()) ? null : "La fecha límite no es válida";
+}
+
+// Rango permitido: hasta 5 años hacia adelante.
+function errorHorizonteFecha(valor, ahora = new Date()) {
+  const tope = new Date(ahora);
+  tope.setFullYear(tope.getFullYear() + ANIOS_MAXIMOS);
+  return new Date(valor) > tope
+    ? `La fecha límite no puede superar los ${ANIOS_MAXIMOS} años desde hoy`
+    : null;
+}
+
+function errorFechaPasada(valor, ahora = new Date()) {
+  return new Date(valor) <= ahora
+    ? "La fecha límite debe ser posterior al momento actual"
+    : null;
+}
 
 // Valida un campo suelto. Devuelve un mensaje de error o null.
 function errorDeCampo(campo, valor) {
   switch (campo) {
     case "titulo":
-      if (vacio(valor)) return "El título es obligatorio";
-      if (valor.trim().length > MAX_TITULO)
-        return `El título no puede superar los ${MAX_TITULO} caracteres`;
-      return null;
+      return errorTitulo(valor);
     case "materia":
-      return vacio(valor) ? "La materia es obligatoria" : null;
+      return errorMateria(valor);
     case "descripcion":
-      if (valor !== undefined && !esTexto(valor))
-        return "La descripción debe ser texto";
-      if (esTexto(valor) && valor.trim().length > MAX_DESCRIPCION)
-        return `La descripción no puede superar los ${MAX_DESCRIPCION} caracteres`;
-      return null;
+      return errorDescripcion(valor);
     case "fechaLimite":
-      if (valor === undefined || valor === null || valor === "")
-        return "La fecha límite es obligatoria";
-      return isNaN(new Date(valor).getTime())
-        ? "La fecha límite no es válida"
-        : null;
+      return errorFormatoFecha(valor);
     case "prioridad":
       return PRIORIDADES_VALIDAS.includes(valor)
         ? null
@@ -56,17 +132,21 @@ function errorDeCampo(campo, valor) {
   }
 }
 
-function validarDatosTarea(datos) {
+// Alta: todos los campos, y la fecha debe ser futura y dentro del horizonte.
+function validarDatosTarea(datos, ahora = new Date()) {
   const d = datos && typeof datos === "object" ? datos : {};
   for (const campo of ["titulo", "materia", "fechaLimite", "prioridad", "descripcion"]) {
     const error = errorDeCampo(campo, d[campo]);
     if (error) return { valido: false, error };
   }
+  const errorFecha = errorHorizonteFecha(d.fechaLimite, ahora) || errorFechaPasada(d.fechaLimite, ahora);
+  if (errorFecha) return { valido: false, error: errorFecha };
   return { valido: true, error: null };
 }
 
 // Validación parcial para ediciones: solo se revisan los campos enviados.
-function validarCambios(cambios) {
+// Que la fecha no sea pasada lo decide el service, porque depende de la fecha actual de la tarea.
+function validarCambios(cambios, ahora = new Date()) {
   if (!cambios || typeof cambios !== "object" || Array.isArray(cambios))
     return { valido: false, error: "El cuerpo de la petición no es válido" };
   const claves = Object.keys(cambios);
@@ -79,7 +159,60 @@ function validarCambios(cambios) {
     const error = errorDeCampo(campo, cambios[campo]);
     if (error) return { valido: false, error };
   }
+  if (cambios.fechaLimite !== undefined) {
+    const error = errorHorizonteFecha(cambios.fechaLimite, ahora);
+    if (error) return { valido: false, error };
+  }
   return { valido: true, error: null };
+}
+
+// Filtros de GET /tareas: solo valores conocidos y textos acotados.
+function validarConsulta(consulta = {}) {
+  const { q, materia, estado, prioridad, favorito, orden } = consulta;
+  const falla = (error) => ({ valido: false, error });
+  if (q !== undefined) {
+    if (!esTexto(q)) return falla("La búsqueda debe ser texto");
+    if (q.trim().length > MAX_BUSQUEDA)
+      return falla(`La búsqueda no puede superar los ${MAX_BUSQUEDA} caracteres`);
+  }
+  if (materia !== undefined) {
+    if (!esTexto(materia)) return falla("La materia debe ser texto");
+    if (materia.trim().length > MAX_MATERIA)
+      return falla(`La materia no puede superar los ${MAX_MATERIA} caracteres`);
+  }
+  if (estado !== undefined && estado !== "" && !ESTADOS_VALIDOS.includes(estado))
+    return falla("El estado no es válido");
+  if (prioridad !== undefined && prioridad !== "" && !PRIORIDADES_VALIDAS.includes(prioridad))
+    return falla("La prioridad no es válida");
+  if (favorito !== undefined && !["true", "false", ""].includes(favorito))
+    return falla("El filtro favorito debe ser true o false");
+  if (orden !== undefined && !["fecha", "prioridad", "creacion"].includes(orden))
+    return falla("El orden no es válido");
+  return { valido: true, error: null };
+}
+
+// ---------- Credenciales ----------
+const CONTRASENAS_COMUNES = [
+  "12345678", "123456789", "1234567890", "password", "password1", "contrasena1",
+  "contraseña1", "qwerty123", "abc12345", "iloveyou1", "admin123", "tareasya1",
+];
+
+function errorUsuario(usuario) {
+  return typeof usuario === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_.-]{1,28}[a-zA-Z0-9]$/.test(usuario)
+    ? null
+    : "Usuario: 3 a 30 caracteres (letras, números, . _ -), sin empezar ni terminar con símbolo";
+}
+
+function errorPassword(password, usuario = "") {
+  if (typeof password !== "string" || password.length < 8 || password.length > 72)
+    return "La contraseña debe tener entre 8 y 72 caracteres";
+  if (!/\p{L}/u.test(password) || !/\d/.test(password))
+    return "La contraseña debe combinar letras y números";
+  if (usuario && password.toLowerCase() === String(usuario).toLowerCase())
+    return "La contraseña no puede ser igual al usuario";
+  if (CONTRASENAS_COMUNES.includes(password.toLowerCase()))
+    return "Esa contraseña es demasiado común";
+  return null;
 }
 
 function generarIdTarea() {
@@ -91,9 +224,9 @@ function crearTarea(datos) {
   const ahora = new Date().toISOString();
   return {
     id: generarIdTarea(),
-    titulo: titulo.trim(),
+    titulo: normalizarTexto(titulo),
     descripcion: descripcion.trim(),
-    materia: materia.trim(),
+    materia: normalizarTexto(materia),
     fechaLimite: new Date(fechaLimite).toISOString(),
     prioridad,
     estado: "pendiente",
@@ -109,6 +242,7 @@ function aplicarCambios(tarea, cambios) {
   for (const campo of Object.keys(cambios)) {
     const valor = cambios[campo];
     if (campo === "fechaLimite") nueva.fechaLimite = new Date(valor).toISOString();
+    else if (campo === "titulo" || campo === "materia") nueva[campo] = normalizarTexto(valor);
     else if (esTexto(valor)) nueva[campo] = valor.trim();
     else nueva[campo] = valor;
   }
@@ -186,6 +320,11 @@ module.exports = {
   ESTADOS_VALIDOS,
   validarDatosTarea,
   validarCambios,
+  validarConsulta,
+  errorFechaPasada,
+  errorUsuario,
+  errorPassword,
+  normalizarTexto,
   crearTarea,
   aplicarCambios,
   generarIdTarea,

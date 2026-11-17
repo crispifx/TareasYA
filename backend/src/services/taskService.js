@@ -4,6 +4,8 @@
 const {
   validarDatosTarea,
   validarCambios,
+  validarConsulta,
+  errorFechaPasada,
   crearTarea,
   aplicarCambios,
   filtrarYOrdenar,
@@ -29,7 +31,9 @@ function crearNuevaTarea(datos) {
 }
 
 function listarTareas(consulta) {
-  return filtrarYOrdenar(repo.obtenerTodas(), consulta);
+  const { valido, error } = validarConsulta(consulta);
+  if (!valido) return { ok: false, status: 400, error };
+  return { ok: true, status: 200, datos: filtrarYOrdenar(repo.obtenerTodas(), consulta) };
 }
 
 function obtenerTarea(id) {
@@ -43,6 +47,15 @@ function actualizarTarea(id, cambios) {
 
   const actual = repo.buscarPorId(id);
   if (!actual) return NO_ENCONTRADA;
+
+  // Mover la fecha al pasado se rechaza; reenviar la misma fecha (aunque ya venció) no es un cambio.
+  if (
+    cambios.fechaLimite !== undefined &&
+    new Date(cambios.fechaLimite).getTime() !== new Date(actual.fechaLimite).getTime()
+  ) {
+    const errorFecha = errorFechaPasada(cambios.fechaLimite);
+    if (errorFecha) return { ok: false, status: 400, error: errorFecha };
+  }
 
   const nueva = aplicarCambios(actual, cambios);
 

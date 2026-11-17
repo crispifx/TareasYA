@@ -1,7 +1,7 @@
 // CICLO 1 (ampliado en el ciclo 2 con porVencer): resumen de tareas (GET /api/tareas/resumen)
 const { test, before, after, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
-const { crearEntorno, enHoras, tareaValida } = require("./helpers");
+const { crearEntorno, enHoras, tareaValida, tareaGuardada } = require("./helpers");
 const { resumenTareas } = require("../src/logic/taskLogic");
 
 const env = crearEntorno();
@@ -42,8 +42,8 @@ test("GET /tareas/resumen sin tareas responde 200 con ceros (y no se confunde co
 });
 
 test("GET /tareas/resumen refleja las tareas cargadas", async () => {
+  env.sembrar([tareaGuardada({ titulo: "Atrasada", fechaLimite: enHoras(-30) })]);
   await env.pedir("/tareas", "POST", tareaValida({ titulo: "Futura" }));
-  await env.pedir("/tareas", "POST", tareaValida({ titulo: "Atrasada", fechaLimite: enHoras(-30) }));
   const hecha = await (await env.pedir("/tareas", "POST", tareaValida({ titulo: "Hecha" }))).json();
   await env.pedir(`/tareas/${hecha.id}`, "PATCH", { estado: "completada" });
 

@@ -20,10 +20,11 @@ before(async () => {
 after(() => server.close());
 beforeEach(() => fs.writeFileSync(DB, "[]"));
 
+const enDias = (d) => new Date(Date.now() + d * 864e5).toISOString();
 const valida = (extra = {}) => ({
   titulo: "TP de Física",
   materia: "Física",
-  fechaLimite: "2026-12-01T20:00",
+  fechaLimite: enDias(20),
   prioridad: "alta",
   ...extra,
 });
@@ -78,8 +79,8 @@ test("POST duplicada activa responde 409; si la otra está completada, se permit
   assert.equal((await pedir("/tareas", "POST", valida())).status, 201);
 });
 test("GET con filtros y orden", async () => {
-  await pedir("/tareas", "POST", valida({ titulo: "Uno", fechaLimite: "2026-12-10T10:00" }));
-  await pedir("/tareas", "POST", valida({ titulo: "Dos", materia: "Arte", prioridad: "baja", fechaLimite: "2026-12-02T10:00" }));
+  await pedir("/tareas", "POST", valida({ titulo: "Uno", fechaLimite: enDias(30) }));
+  await pedir("/tareas", "POST", valida({ titulo: "Dos", materia: "Arte", prioridad: "baja", fechaLimite: enDias(10) }));
   const porFecha = await (await pedir("/tareas")).json();
   assert.deepEqual(porFecha.map((t) => t.titulo), ["Dos", "Uno"]);
   const arte = await (await pedir("/tareas?materia=arte")).json();
@@ -97,9 +98,9 @@ test("PATCH edita campos y actualiza fechaActualizacion", async () => {
   assert.equal(n.id, t.id);
 });
 test("PATCH no deja crear un duplicado al editar", async () => {
-  await pedir("/tareas", "POST", valida({ titulo: "A" }));
-  const b = await (await pedir("/tareas", "POST", valida({ titulo: "B" }))).json();
-  assert.equal((await pedir(`/tareas/${b.id}`, "PATCH", { titulo: "a" })).status, 409);
+  await pedir("/tareas", "POST", valida({ titulo: "Alfa" }));
+  const b = await (await pedir("/tareas", "POST", valida({ titulo: "Beta" }))).json();
+  assert.equal((await pedir(`/tareas/${b.id}`, "PATCH", { titulo: "alfa" })).status, 409);
 });
 test("PATCH / GET / DELETE de id inexistente responden 404", async () => {
   assert.equal((await pedir("/tareas/nope", "PATCH", { favorito: true })).status, 404);

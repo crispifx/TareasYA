@@ -8,7 +8,7 @@ let server, base;
 before(async () => { await new Promise((r) => (server = app.listen(0, r))); base = `http://localhost:${server.address().port}/api`; });
 after(() => server.close());
 const pedir = (r, m = "GET", b, t) => fetch(base + r, { method: m, headers: { "Content-Type": "application/json", ...(t && { Authorization: `Bearer ${t}` }) }, body: b && JSON.stringify(b) });
-const tarea = { titulo: "TP", materia: "Física", fechaLimite: "2030-01-01T10:00", prioridad: "alta" };
+const tarea = { titulo: "TP Uno", materia: "Física", fechaLimite: new Date(Date.now() + 30 * 864e5).toISOString(), prioridad: "alta" };
 
 test("sin sesión no se accede a las tareas", async () => assert.strictEqual((await pedir("/tareas")).status, 401));
 test("registro, duplicado y login", async () => {

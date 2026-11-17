@@ -19,11 +19,11 @@ paths:
     get:
       summary: Lista tareas con filtros y orden
       parameters:
-        - { name: q, in: query, schema: { type: string }, description: Busca en título y materia }
-        - { name: materia, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string, maxLength: 50 }, description: Busca en título y materia }
+        - { name: materia, in: query, schema: { type: string, maxLength: 40 } }
         - { name: estado, in: query, schema: { $ref: "#/components/schemas/Estado" } }
         - { name: prioridad, in: query, schema: { $ref: "#/components/schemas/Prioridad" } }
-        - { name: favorito, in: query, schema: { type: string, enum: ["true"] }, description: Solo favoritas }
+        - { name: favorito, in: query, schema: { type: string, enum: ["true", "false"] }, description: Con true, solo favoritas }
         - { name: orden, in: query, schema: { type: string, enum: [fecha, prioridad, creacion], default: fecha } }
       responses:
         "200":
@@ -31,6 +31,11 @@ paths:
           content:
             application/json:
               schema: { type: array, items: { $ref: "#/components/schemas/Tarea" } }
+        "400":
+          description: Filtro con un valor no permitido (estado, prioridad, orden, favorito) o texto demasiado largo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
     post:
       summary: Crea una tarea
       requestBody:
@@ -129,20 +134,20 @@ components:
       type: object
       required: [titulo, materia, fechaLimite, prioridad]
       properties:
-        titulo: { type: string, maxLength: 100 }
+        titulo: { type: string, minLength: 3, maxLength: 100, description: Al menos una letra; sin símbolos fuera de . , ; : ! ? ¿ ¡ ( ) - _ / & ' " + # % @ = *; sin repetir un carácter más de 3 veces seguidas }
         descripcion: { type: string, maxLength: 500 }
-        materia: { type: string }
-        fechaLimite: { type: string, format: date-time }
+        materia: { type: string, minLength: 2, maxLength: 40, description: "Solo letras, números, espacios y . - ' & ( ); al menos una letra" }
+        fechaLimite: { type: string, format: date-time, description: Fecha y hora reales; posterior a ahora y hasta 5 años adelante }
         prioridad: { $ref: "#/components/schemas/Prioridad" }
     CambiosTarea:
       type: object
       minProperties: 1
       additionalProperties: false
       properties:
-        titulo: { type: string, maxLength: 100 }
+        titulo: { type: string, minLength: 3, maxLength: 100 }
         descripcion: { type: string, maxLength: 500 }
-        materia: { type: string }
-        fechaLimite: { type: string, format: date-time }
+        materia: { type: string, minLength: 2, maxLength: 40 }
+        fechaLimite: { type: string, format: date-time, description: Si cambia, debe ser posterior a ahora y hasta 5 años adelante; reenviar la misma fecha no es un cambio }
         prioridad: { $ref: "#/components/schemas/Prioridad" }
         estado: { $ref: "#/components/schemas/Estado" }
         favorito: { type: boolean }

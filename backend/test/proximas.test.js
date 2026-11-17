@@ -1,7 +1,7 @@
 // CICLO 2: tareas próximas a vencer (GET /api/tareas/proximas?horas=N)
 const { test, before, after, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
-const { crearEntorno, enHoras, tareaValida } = require("./helpers");
+const { crearEntorno, enHoras, tareaValida, tareaGuardada } = require("./helpers");
 const { tareasPorVencer } = require("../src/logic/taskLogic");
 
 const env = crearEntorno();
@@ -47,10 +47,10 @@ test("tareasPorVencer: usa 48 horas si no se indica la ventana", () => {
 
 // ---------- API ----------
 test("GET /tareas/proximas usa 48 h por defecto y ordena por fecha", async () => {
+  env.sembrar([tareaGuardada({ titulo: "Pasada", fechaLimite: enHoras(-5) })]);
   await env.pedir("/tareas", "POST", tareaValida({ titulo: "En 30h", fechaLimite: enHoras(30) }));
   await env.pedir("/tareas", "POST", tareaValida({ titulo: "En 5h", fechaLimite: enHoras(5) }));
   await env.pedir("/tareas", "POST", tareaValida({ titulo: "En 100h", fechaLimite: enHoras(100) }));
-  await env.pedir("/tareas", "POST", tareaValida({ titulo: "Pasada", fechaLimite: enHoras(-5) }));
 
   const r = await env.pedir("/tareas/proximas");
   assert.equal(r.status, 200);

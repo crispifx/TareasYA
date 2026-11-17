@@ -10,7 +10,7 @@ function responder(res, r) {
 }
 
 const postTarea = (req, res) => responder(res, service.crearNuevaTarea(req.body));
-const getTareas = (req, res) => res.status(200).json(service.listarTareas(req.query));
+const getTareas = (req, res) => responder(res, service.listarTareas(req.query));
 const getTarea = (req, res) => responder(res, service.obtenerTarea(req.params.id));
 const patchTarea = (req, res) =>
   responder(res, service.actualizarTarea(req.params.id, req.body));

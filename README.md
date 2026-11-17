@@ -29,7 +29,8 @@ Los estudiantes organizan sus entregas en cuadernos, mensajes sueltos o el chat 
 - ✅ Crear, editar y eliminar tareas (con confirmación al eliminar)
 - ☑️ Completar una tarea con un solo clic desde el círculo de cada tarjeta
 - 🏷️ Estados (pendiente, en curso, completada), prioridad, materia y favoritas
-- 🚫 Regla anti-duplicados: no permite dos tareas activas con el mismo título y materia
+- 🚫 Regla anti-duplicados: no permite dos tareas activas con el mismo título y materia (ignora mayúsculas y espacios de más)
+- 🛡️ **Validación estricta**, igual en pantalla y en el servidor: título (3-100, con letras, sin símbolos raros), materia (2-40, solo letras/números/`. - ' & ( )`), fecha y hora reales (sin 31 de febrero, ni 24:00), siempre futuras y hasta 5 años adelante; filtros de la API con valores conocidos. Detalle en [`docs/API.md`](docs/API.md#reglas-de-validación)
 
 **Organización y seguimiento**
 - 🔎 Búsqueda por título o materia, filtros y orden (fecha, prioridad, recientes)
@@ -39,7 +40,8 @@ Los estudiantes organizan sus entregas en cuadernos, mensajes sueltos o el chat 
 - ▦ **Vista Tablero** (pendientes / en curso / completadas) o vista Lista; recuerda tu elección
 
 **Experiencia**
-- 🎨 Diseño renovado: cabecera con degradado, saludo según la hora, tarjetas con animaciones
+- 🎨 Interfaz sobria: panel lateral con formulario y filtros, bloque de fecha en cada tarea (tintado si vence pronto o ya venció), iconos SVG
+- ✍️ Formulario guiado: errores junto a cada campo, contadores, atajos de fecha (hoy, mañana, en 1 semana) y caracteres no permitidos que ni se pueden escribir
 - 🌗 **Selector de tema** (automático, claro u oscuro), guardado en tu navegador
 - ⬇️ **Exportar** todas tus tareas a un archivo JSON
 - 📱 Diseño responsive y respeto por la preferencia de "reducir animaciones"
@@ -146,8 +148,8 @@ La app se publica como **un único Web Service**: el servidor Express sirve la A
 ## 🧪 Pruebas
 
 ```bash
-cd backend  && npm test    # 31 tests
-cd frontend && npm test    # 22 tests
+cd backend  && npm test    # 62 tests
+cd frontend && npm test    # 36 tests
 cd frontend && npm run build
 ```
 
@@ -184,7 +186,7 @@ Referencia completa: [`docs/API.md`](docs/API.md) · OpenAPI: [`backend/openapi.
   "titulo": "TP de Física",
   "descripcion": "",
   "materia": "Física",
-  "fechaLimite": "2026-12-01T23:00:00.000Z",
+  "fechaLimite": "2030-12-01T23:00:00.000Z",
   "prioridad": "alta",
   "estado": "pendiente",
   "favorito": false,
