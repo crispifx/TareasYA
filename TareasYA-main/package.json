@@ -1,0 +1,9 @@
+{
+  "name": "tareasya",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix frontend --include=dev && npm run build --prefix frontend && npm install --prefix backend",
+    "start": "node backend/src/server.js"
+  },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,51 @@
+// Utilidades compartidas por los tests de la API.
+// Cada archivo de test corre en su propio proceso, con su propia base temporal.
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+function crearEntorno() {
+  const DB = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "tareasya-")), "db.json");
+  process.env.TAREASYA_DB = DB;
+  process.env.TAREASYA_SIN_AUTH = "1"; // los tests de tareas no usan sesión
+  const app = require("../src/app");
+  let server;
+  let base;
+
+  return {
+    async iniciar() {
+      await new Promise((r) => (server = app.listen(0, r)));
+      base = `http://localhost:${server.address().port}/api`;
+      fs.writeFileSync(DB, "[]");
+    },
+    cerrar: () => server.close(),
+    limpiar: () => fs.writeFileSync(DB, "[]"),
+    // Inserta tareas directo en la base (la API ya no deja crear tareas con fecha pasada).
+    sembrar: (tareas) => fs.writeFileSync(DB, JSON.stringify(tareas)),
+    pedir: (ruta, metodo = "GET", cuerpo) =>
+      fetch(base + ruta, {
+        method: metodo,
+        headers: { "Content-Type": "application/json" },
+        body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+      }),
+  };
+}
+
+const enHoras = (h) => new Date(Date.now() + h * 3600 * 1000).toISOString();
+const tareaValida = (extra = {}) => ({
+  titulo: "Tarea " + Math.random().toString(36).slice(2, 7),
+  materia: "Física",
+  fechaLimite: enHoras(200),
+  prioridad: "media",
+  ...extra,
+});
+
+const tareaGuardada = (extra = {}) => ({
+  id: "s" + Math.random().toString(36).slice(2, 8),
+  titulo: "Guardada", descripcion: "", materia: "Física", prioridad: "media",
+  estado: "pendiente", favorito: false, fechaLimite: enHoras(200),
+  fechaCreacion: new Date().toISOString(), fechaActualizacion: new Date().toISOString(),
+  ...extra,
+});
+
+module.exports = { crearEntorno, enHoras, tareaValida, tareaGuardada };

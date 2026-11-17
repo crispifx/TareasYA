@@ -281,3 +281,42 @@ export function textoVencimiento(tarea, ahora = new Date()) {
   if (horas < 24) return `vence en ${horas} h`;
   return dias === 1 ? "vence mañana" : `vence en ${dias} d`;
 }
+
+// ---------- Agrupar por vencimiento y resumen por materia ----------
+export const GRUPOS_VENCIMIENTO = [
+  ["vencidas", "Vencidas"], ["hoy", "Hoy"], ["manana", "Mañana"],
+  ["semana", "Esta semana"], ["despues", "Más adelante"], ["completadas", "Completadas"],
+];
+const inicioDia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** En qué grupo cae una tarea: completadas, vencidas o según los días que faltan. */
+export function claveVencimiento(tarea, ahora = new Date()) {
+  if (tarea.estado === "completada") return "completadas";
+  const f = new Date(tarea.fechaLimite);
+  if (f < ahora) return "vencidas";
+  const dias = Math.round((inicioDia(f) - inicioDia(ahora)) / 864e5);
+  return dias === 0 ? "hoy" : dias === 1 ? "manana" : dias <= 7 ? "semana" : "despues";
+}
+
+/** Grupos no vacíos, en orden fijo; dentro de cada uno se conserva el orden recibido. */
+export function agruparPorVencimiento(tareas, ahora = new Date()) {
+  const porClave = new Map(GRUPOS_VENCIMIENTO.map(([k]) => [k, []]));
+  tareas.forEach((t) => porClave.get(claveVencimiento(t, ahora)).push(t));
+  return GRUPOS_VENCIMIENTO
+    .filter(([k]) => porClave.get(k).length)
+    .map(([clave, titulo]) => ({ clave, titulo, tareas: porClave.get(clave) }));
+}
+
+/** Total, completadas y porcentaje por materia; las más cargadas primero. */
+export function resumenPorMateria(tareas) {
+  const m = new Map();
+  tareas.forEach((t) => {
+    const r = m.get(t.materia) || { materia: t.materia, total: 0, completadas: 0 };
+    r.total += 1;
+    if (t.estado === "completada") r.completadas += 1;
+    m.set(t.materia, r);
+  });
+  return [...m.values()]
+    .map((r) => ({ ...r, pct: Math.round((r.completadas / r.total) * 100) }))
+    .sort((a, b) => b.total - a.total || a.materia.localeCompare(b.materia, "es"));
+}

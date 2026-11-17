@@ -1,10 +1,11 @@
 // App.jsx: orquesta datos (taskClient) y componentes de presentación.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TaskForm from "./components/TaskForm";
 import TaskFilters, { FILTROS_INICIALES } from "./components/TaskFilters";
 import TaskList from "./components/TaskList";
 import Calendario from "./components/Calendario";
 import { Icono } from "./components/Icono";
+import PorMateria from "./components/PorMateria";
 import { imprimirPDF } from "./logic/pdf";
 import {
   filtrarTareas,
@@ -25,6 +26,9 @@ export default function App({ usuario, onSalir }) {
   const [filtros, setFiltros] = useState(FILTROS_INICIALES);
   const [orden, setOrden] = useState("fecha");
   const [editando, setEditando] = useState(null);
+  const [ocultas, setOcultas] = useState(() => new Set()); // eliminadas con "Deshacer" pendiente
+  const [avisos, setAvisos] = useState([]);
+  const pendientes = useRef(new Map()); // id -> { timer, tarea }
   const [vista, setVista] = useState(() => leer("vista", "lista"));
   const [tema, setTema] = useState(() => leer("tema", "auto"));
   const [permisoNotif, setPermisoNotif] = useState(
@@ -57,7 +61,7 @@ export default function App({ usuario, onSalir }) {
   }, []);
 
   // Recordatorios: aviso del navegador para tareas que vencen en menos de 48 h.
-  const porVencer = useMemo(() => tareasPorVencer(tareas), [tareas]);
+  const porVencer = useMemo(() => tareasPorVencer(tareas.filter((t) => !ocultas.has(t.id))), [tareas, ocultas]);
   useEffect(() => {
     if (permisoNotif !== "granted" || porVencer.length === 0) return;
     const ya = new Set(JSON.parse(sessionStorage.getItem("avisadas") || "[]"));
@@ -67,6 +71,30 @@ export default function App({ usuario, onSalir }) {
     });
     sessionStorage.setItem("avisadas", JSON.stringify([...ya]));
   }, [porVencer, permisoNotif]);
+
+  const quitarAviso = useCallback((id) => setAvisos((a) => a.filter((x) => x.id !== id)), []);
+  const avisar = useCallback((texto, { deshacer, ms = 3500 } = {}) => {
+    const id = Date.now() + Math.random();
+    setAvisos((a) => [...a.slice(-2), { id, texto, deshacer }]);
+    setTimeout(() => quitarAviso(id), ms);
+  }, [quitarAviso]);
+
+  // Atajos: "/" busca, "n" abre una tarea nueva (solo fuera de los campos de texto).
+  useEffect(() => {
+    const alTeclear = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      const foco = { "/": "busqueda", n: "f-titulo" }[e.key];
+      if (!foco) return;
+      e.preventDefault();
+      document.getElementById(foco)?.focus();
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, []);
+
+  // Al salir de la pantalla, las eliminaciones que esperaban "Deshacer" se confirman.
+  useEffect(() => () => pendientes.current.forEach(({ timer, tarea }) => { clearTimeout(timer); cliente.eliminarTarea(tarea.id).catch(() => {}); }), []);
 
   async function accion(fn) {
     setErrorGlobal("");
@@ -78,23 +106,45 @@ export default function App({ usuario, onSalir }) {
     }
   }
 
-  const crear = (datos) => cliente.crearNuevaTarea(datos).then(recargar);
+  const crear = (datos) => cliente.crearNuevaTarea(datos).then(recargar).then(() => avisar("Tarea creada"));
   const guardarEdicion = (datos) =>
-    cliente.actualizarTarea(editando.id, datos).then(recargar).then(() => setEditando(null));
-  const cambiar = (id, cambios) => accion(() => cliente.actualizarTarea(id, cambios));
+    cliente.actualizarTarea(editando.id, datos).then(recargar).then(() => { setEditando(null); avisar("Cambios guardados"); });
+  const cambiar = (id, cambios) => accion(async () => {
+    await cliente.actualizarTarea(id, cambios);
+    if (cambios.estado === "completada") avisar("Marcada como completada");
+  });
+
+  // Eliminar: la tarea se oculta al instante y se borra de verdad a los 6 s, salvo que se toque "Deshacer".
   const eliminar = (t) => {
-    if (window.confirm(`¿Eliminar "${t.titulo}"?`)) accion(() => cliente.eliminarTarea(t.id));
+    if (editando?.id === t.id) setEditando(null);
+    setOcultas((o) => new Set(o).add(t.id));
+    const timer = setTimeout(() => {
+      pendientes.current.delete(t.id);
+      cliente.eliminarTarea(t.id)
+        .catch((e) => setErrorGlobal(e.message))
+        .finally(() => recargar().finally(() => setOcultas((o) => { const n = new Set(o); n.delete(t.id); return n; })));
+    }, 6000);
+    pendientes.current.set(t.id, { timer, tarea: t });
+    avisar(`Eliminaste "${t.titulo}"`, {
+      ms: 6000,
+      deshacer: () => {
+        clearTimeout(timer);
+        pendientes.current.delete(t.id);
+        setOcultas((o) => { const n = new Set(o); n.delete(t.id); return n; });
+      },
+    });
   };
 
-  const materias = useMemo(() => [...new Set(tareas.map((t) => t.materia))].sort(), [tareas]);
-  const visibles = useMemo(() => ordenarTareas(filtrarTareas(tareas, filtros), orden), [tareas, filtros, orden]);
-  const resumen = resumenTareas(tareas);
-  const pct = tareas.length ? Math.round((resumen.completadas / tareas.length) * 100) : 0;
+  const vivas = useMemo(() => tareas.filter((t) => !ocultas.has(t.id)), [tareas, ocultas]);
+  const materias = useMemo(() => [...new Set(vivas.map((t) => t.materia))].sort(), [vivas]);
+  const visibles = useMemo(() => ordenarTareas(filtrarTareas(vivas, filtros), orden), [vivas, filtros, orden]);
+  const resumen = resumenTareas(vivas);
+  const pct = vivas.length ? Math.round((resumen.completadas / vivas.length) * 100) : 0;
   const hora = new Date().getHours();
   const saludo = hora < 6 ? "Buenas noches" : hora < 13 ? "Buen día" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const activas = resumen.pendientes + resumen.enCurso;
   const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
-  const frase = tareas.length === 0
+  const frase = vivas.length === 0
     ? "Cargá tu primera entrega para empezar."
     : activas === 0
       ? "Estás al día: no tenés entregas pendientes."
@@ -139,7 +189,7 @@ export default function App({ usuario, onSalir }) {
           <div className={`metrica vencidas ${resumen.vencidas ? "activa" : ""}`}><span>Vencidas</span><strong>{resumen.vencidas}</strong></div>
         </div>
         <div className="progreso" aria-label="Progreso">
-          <div className="progreso-txt"><strong>{pct}% completado</strong><span>{resumen.completadas} de {tareas.length} tareas</span></div>
+          <div className="progreso-txt"><strong>{pct}% completado</strong><span>{resumen.completadas} de {vivas.length} tareas</span></div>
           <div className="barra" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: `${pct}%` }} /></div>
         </div>
       </section>
@@ -154,6 +204,7 @@ export default function App({ usuario, onSalir }) {
             onCancel={() => setEditando(null)}
           />
           <TaskFilters filtros={filtros} setFiltros={setFiltros} orden={orden} setOrden={setOrden} materias={materias} />
+          <PorMateria tareas={vivas} materiaActiva={filtros.materia} onElegir={(m) => setFiltros({ ...filtros, materia: m })} />
         </aside>
 
         <div className="principal">
@@ -182,13 +233,25 @@ export default function App({ usuario, onSalir }) {
           </div>
 
           {cargando ? (
-            <div className="vacio"><span>Cargando tus tareas…</span></div>
+            <div className="lista" aria-busy="true" aria-label="Cargando tus tareas">
+              {[0, 1, 2].map((i) => <div key={i} className="panel esqueleto" />)}
+            </div>
           ) : vista === "calendario" ? (
             <Calendario tareas={visibles} {...acc} />
           ) : (
-            <TaskList tareas={visibles} hayTareas={tareas.length > 0} vista={vista} {...acc} />
+            <TaskList tareas={visibles} hayTareas={vivas.length > 0} vista={vista} agrupar={vista === "lista" && orden === "fecha"} {...acc} />
           )}
         </div>
+      </div>
+
+      <div className="avisos" role="status" aria-live="polite">
+        {avisos.map((a) => (
+          <div key={a.id} className="aviso-flotante">
+            <span>{a.texto}</span>
+            {a.deshacer && <button type="button" className="enlace" onClick={() => { a.deshacer(); quitarAviso(a.id); }}>Deshacer</button>}
+            <button type="button" className="icono" onClick={() => quitarAviso(a.id)} aria-label="Cerrar aviso"><Icono n="mas" size={15} style={{ transform: "rotate(45deg)" }} /></button>
+          </div>
+        ))}
       </div>
     </main>
   );

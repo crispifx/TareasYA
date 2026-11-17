@@ -17,9 +17,9 @@ export default function TaskFilters({ filtros, setFiltros, orden, setOrden, mate
       </div>
       <div className="entrada-icono">
         <Icono n="buscar" size={16} />
-        <input type="search" value={filtros.q} maxLength={LIMITES.busquedaMax}
+        <input id="busqueda" type="search" value={filtros.q} maxLength={LIMITES.busquedaMax}
           onChange={(e) => setFiltros({ ...filtros, q: limpiarBusqueda(e.target.value) })}
-          placeholder="Buscar por título o materia" aria-label="Buscar" />
+          placeholder="Buscar por título o materia ( / )" aria-label="Buscar" />
       </div>
       <div className="fila">
         <select value={filtros.materia} onChange={set("materia")} aria-label="Materia">

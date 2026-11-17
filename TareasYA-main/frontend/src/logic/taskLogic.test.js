@@ -4,6 +4,9 @@
 import { describe, it, expect } from "vitest";
 import {
   validarDatosTarea,
+  agruparPorVencimiento,
+  claveVencimiento,
+  resumenPorMateria,
   erroresTarea,
   errorDeCampo,
   errorFormatoFecha,
@@ -248,4 +251,41 @@ describe("credenciales", () => {
     expect(errorPassword("ANA12345", "ana12345")).toBe("La contraseña no puede ser igual al usuario");
     expect(errorPassword("password1", "ana")).toBe("Esa contraseña es demasiado común");
   });
+});
+
+describe("agrupar por vencimiento", () => {
+  const ahora = new Date(2026, 10, 16, 12, 0); // lunes 16/11, 12:00 (hora local)
+  const en = (dias, h = 18) => new Date(2026, 10, 16 + dias, h, 0).toISOString();
+  const t = (id, fechaLimite, estado = "pendiente", materia = "Física") => ({ id, titulo: id, materia, estado, fechaLimite });
+
+  it("clasifica vencidas, hoy, mañana, semana y más adelante", () => {
+    expect(claveVencimiento(t("a", en(0, 9)), ahora)).toBe("vencidas");
+    expect(claveVencimiento(t("b", en(0, 18)), ahora)).toBe("hoy");
+    expect(claveVencimiento(t("c", en(1, 8)), ahora)).toBe("manana");
+    expect(claveVencimiento(t("d", en(7)), ahora)).toBe("semana");
+    expect(claveVencimiento(t("e", en(8)), ahora)).toBe("despues");
+  });
+  it("una completada va a su grupo aunque esté vencida", () => {
+    expect(claveVencimiento(t("x", en(-3), "completada"), ahora)).toBe("completadas");
+  });
+  it("devuelve solo grupos con tareas, en orden fijo, conservando el orden interno", () => {
+    const g = agruparPorVencimiento([t("z", en(10)), t("v", en(-2)), t("h2", en(0, 20)), t("h1", en(0, 15)), t("ok", en(1), "completada")], ahora);
+    expect(g.map((x) => x.clave)).toEqual(["vencidas", "hoy", "despues", "completadas"]);
+    expect(g[1].tareas.map((x) => x.id)).toEqual(["h2", "h1"]);
+  });
+  it("sin tareas no hay grupos", () => expect(agruparPorVencimiento([], ahora)).toEqual([]));
+});
+
+describe("resumenPorMateria", () => {
+  it("cuenta por materia, calcula el porcentaje y ordena por cantidad", () => {
+    const ts = [
+      { materia: "Arte", estado: "pendiente" }, { materia: "Física", estado: "completada" },
+      { materia: "Física", estado: "pendiente" }, { materia: "Física", estado: "completada" },
+    ];
+    expect(resumenPorMateria(ts)).toEqual([
+      { materia: "Física", total: 3, completadas: 2, pct: 67 },
+      { materia: "Arte", total: 1, completadas: 0, pct: 0 },
+    ]);
+  });
+  it("lista vacía", () => expect(resumenPorMateria([])).toEqual([]));
 });

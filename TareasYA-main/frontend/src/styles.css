@@ -187,6 +187,38 @@ input[type="datetime-local"] { min-width: 0; }
 .tablero .tarea { grid-template-columns: 1fr; padding: 12px; }
 .tablero .fecha-bloque { display: none; }
 
+/* grupos por vencimiento */
+.grupos { display: grid; gap: 22px; }
+.grupo { display: grid; gap: 10px; }
+.grupo-titulo { display: flex; align-items: center; gap: 8px; font-size: .86rem; color: var(--suave); }
+.grupo-titulo span { background: var(--linea); color: var(--suave); border-radius: 99px; padding: 0 8px; font-size: .74rem; }
+.grupo-titulo.vencidas { color: var(--alta); } .grupo-titulo.vencidas span { background: var(--alta-tenue); color: var(--alta); }
+.grupo-titulo.hoy { color: var(--media); } .grupo-titulo.hoy span { background: var(--media-tenue); color: var(--media); }
+.grupo-titulo.manana { color: var(--tinta); }
+
+/* por materia */
+.por-materia { display: grid; gap: 10px; }
+.por-materia h2 { display: flex; align-items: center; gap: 8px; }
+.por-materia ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.por-materia li button { width: 100%; display: grid; gap: 6px; padding: 8px 10px; background: transparent; border-color: transparent; font-weight: 600; text-align: left; justify-content: stretch; }
+.por-materia li button:hover { background: var(--superficie-2); border-color: transparent; }
+.por-materia li button.on { background: var(--acento-tenue); }
+.materia-linea { display: flex; justify-content: space-between; gap: 8px; font-size: .86rem; }
+.materia-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.materia-cuenta { color: var(--suave); font-variant-numeric: tabular-nums; }
+.barra.chica { height: 5px; }
+
+/* carga y avisos */
+.esqueleto { height: 112px; background: linear-gradient(100deg, var(--superficie) 30%, var(--superficie-2) 50%, var(--superficie) 70%) 0 0 / 220% 100%; animation: brillo 1.3s linear infinite; }
+@keyframes brillo { to { background-position: -120% 0; } }
+.avisos { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: grid; gap: 8px; z-index: 50; width: min(440px, calc(100vw - 24px)); pointer-events: none; }
+.aviso-flotante { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 16px; border-radius: 12px; background: var(--tinta); color: var(--bg); box-shadow: var(--sombra-alta); font-weight: 600; font-size: .88rem; animation: entra .18s ease-out; }
+.aviso-flotante span { flex: 1; overflow-wrap: anywhere; }
+.aviso-flotante .enlace { color: var(--bg); }
+.aviso-flotante button.icono { color: var(--bg); width: 28px; height: 28px; padding: 4px; opacity: .7; }
+.aviso-flotante button.icono:hover { background: transparent; color: var(--bg); opacity: 1; }
+@keyframes entra { from { opacity: 0; transform: translateY(8px); } }
+
 /* ---------- calendario ---------- */
 .calendario { display: grid; gap: 14px; }
 .cal-barra { display: flex; align-items: center; gap: 8px; }

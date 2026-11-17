@@ -1,5 +1,5 @@
 // TaskList.jsx: lista de tareas y acciones rápidas por tarea.
-import { ESTADOS_VALIDOS, estaVencida, textoVencimiento } from "../logic/taskLogic";
+import { ESTADOS_VALIDOS, agruparPorVencimiento, estaVencida, textoVencimiento } from "../logic/taskLogic";
 import { Icono } from "./Icono";
 
 const mayus = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -68,7 +68,7 @@ export function TaskItem({ tarea, onCambiar, onEditar, onEliminar }) {
 
 const COLUMNAS = [["pendiente", "Pendientes"], ["en curso", "En curso"], ["completada", "Completadas"]];
 
-export function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
+export function TaskList({ tareas, hayTareas, vista = "lista", agrupar = false, ...acciones }) {
   if (tareas.length === 0) {
     return (
       <div className="vacio">
@@ -91,6 +91,20 @@ export function TaskList({ tareas, hayTareas, vista = "lista", ...acciones }) {
             </section>
           );
         })}
+      </div>
+    );
+  }
+  if (agrupar) {
+    return (
+      <div className="grupos">
+        {agruparPorVencimiento(tareas).map((g) => (
+          <section key={g.clave} className="grupo" aria-label={g.titulo}>
+            <h2 className={`grupo-titulo ${g.clave}`}>{g.titulo} <span>{g.tareas.length}</span></h2>
+            <ul className="lista">
+              {g.tareas.map((t) => <TaskItem key={t.id} tarea={t} {...acciones} />)}
+            </ul>
+          </section>
+        ))}
       </div>
     );
   }
